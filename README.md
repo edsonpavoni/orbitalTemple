@@ -185,7 +185,7 @@ Leave the satellite running for 7 days with no intervention.
 - [ ] Battery fully charged
 - [ ] HMAC key is unique (not default)
 
-**Full test protocol:** [`TEST_PROTOCOL.md`](TEST_PROTOCOL.md)
+**Full test protocol:** [`TEST_PROTOCOL.md`](docs/TEST_PROTOCOL.md)
 
 ---
 

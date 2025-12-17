@@ -20,6 +20,101 @@ And confirm:
 
 ---
 
+## Copy-Paste Test Commands
+
+**IMPORTANT:** Replace `[HMAC]` with your calculated HMAC signature for each command.
+
+Your satellite ID: `_______________` (fill in before testing)
+
+### All Test Commands (in order)
+
+```
+# Step 4: Ping Test
+SAT001-Ping&@#[HMAC]
+
+# Step 5: Status/Telemetry
+SAT001-Status&@#[HMAC]
+
+# Step 6: Write File
+SAT001-WriteFile&/test.txt@Hello from Earth#[HMAC]
+
+# Step 7: Read File
+SAT001-ReadFile&/test.txt@#[HMAC]
+
+# Step 8: Delete File
+SAT001-DeleteFile&/test.txt@#[HMAC]
+
+# Step 9: Artwork Ascension
+SAT001-artworkAscension&@QmTestCID12345678901234567890|Test Artist|Test Artwork#[HMAC]
+
+# Step 9: List Artworks
+SAT001-artworkList&@#[HMAC]
+
+# Step 10: Wrong HMAC (should fail)
+SAT001-Ping&@#wrongsignature123
+
+# Step 11: Path Traversal (should fail)
+SAT001-ReadFile&/../../../etc/passwd@#[HMAC]
+
+# Step 13: Force Operational (skip antenna wait)
+SAT001-ForceOperational&@#[HMAC]
+
+# Step 16: Ping (to trigger contact)
+SAT001-Ping&@#[HMAC]
+
+# Step 17: Radiation Status
+SAT001-GetRadStatus&@#[HMAC]
+
+# Day 6 Soak Test: Ping
+SAT001-Ping&@#[HMAC]
+
+# Day 7 Soak Test: Status
+SAT001-Status&@#[HMAC]
+```
+
+### Additional Useful Commands
+
+```
+# Get satellite state
+SAT001-GetState&@#[HMAC]
+
+# List directory
+SAT001-ListDir&/@#[HMAC]
+
+# List names directory
+SAT001-ListDir&/names@#[HMAC]
+
+# Write a name
+SAT001-WriteFile&/names/test.txt@Test Name#[HMAC]
+
+# Restart satellite
+SAT001-MCURestart&@#[HMAC]
+
+# Start accelerometer recording
+SAT001-AccelRecord&@#[HMAC]
+
+# List accelerometer recordings
+SAT001-AccelList&@#[HMAC]
+
+# Get accelerometer status
+SAT001-AccelStatus&@#[HMAC]
+```
+
+### Cleanup Commands (after testing)
+
+```
+# Delete test file
+SAT001-DeleteFile&/test.txt@#[HMAC]
+
+# Delete test artwork log (if needed)
+SAT001-DeleteFile&/artworks.log@#[HMAC]
+
+# Delete test names
+SAT001-DeleteFile&/names/test.txt@#[HMAC]
+```
+
+---
+
 ## Step 1: First Power On
 
 Plug the USB cable into the satellite and open the Serial Monitor at 115200 baud.

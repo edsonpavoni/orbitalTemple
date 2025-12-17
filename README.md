@@ -98,6 +98,25 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 | `ImageEnd` | Finalize the image transfer |
 | `AccelRecord` | Record 60 seconds of accelerometer data at 30Hz |
 | `AccelList` | List available accelerometer recordings |
+| `artworkAscension` | Ascend artwork to orbit — IPFS CID, artist name, work title |
+| `artworkList` | List all artworks ascended to the temple |
+
+### Artwork Ascension (IPFS)
+
+The satellite can store references to artwork using IPFS (InterPlanetary File System) — a decentralized storage network. The artwork itself lives on Earth, pinned to IPFS. The satellite holds the permanent record: the content identifier, the artist's name, and the work's title.
+
+```
+Format: SAT_ID-artworkAscension&@IPFS_CID|ArtistName|WorkTitle#HMAC
+Example: OT1-artworkAscension&@QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG|Maria Silva|Celestial Dreams#abc123...
+```
+
+Stored on SD card as `/artworks.log`:
+```
+T+00:15:32|QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG|Maria Silva|Celestial Dreams
+T+01:42:15|bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3okuber7xgqghkq|João Santos|Orbital Memory
+```
+
+The "InterPlanetary" File System — now literally interplanetary.
 
 ---
 

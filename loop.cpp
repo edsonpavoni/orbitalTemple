@@ -367,6 +367,50 @@ void processMessage(const String& message) {
         Serial.println("[CMD] Accel cancel");
         accelCancelRecording();
     }
+    // ==================== ARTWORK ASCENSION COMMAND ====================
+    else if (command.equals("artworkAscension")) {
+        // Store artwork reference (IPFS CID + metadata) - artwork ascends to orbit
+        // Data format: IPFS_CID|ArtistName|WorkTitle
+        Serial.println("[CMD] artworkAscension");
+
+        // Parse the data: IPFS_CID|ArtistName|WorkTitle
+        int pipe1 = data.indexOf('|');
+        int pipe2 = data.lastIndexOf('|');
+
+        if (pipe1 == -1 || pipe2 == -1 || pipe1 == pipe2) {
+            Serial.println("[ART] Invalid format, expected: IPFS_CID|ArtistName|WorkTitle");
+            sendMessage("ERR:ART_INVALID_FORMAT");
+        } else {
+            String ipfsCID = data.substring(0, pipe1);
+            String artistName = data.substring(pipe1 + 1, pipe2);
+            String workTitle = data.substring(pipe2 + 1);
+
+            // Validate IPFS CID (should start with Qm or bafy for CIDv0/v1)
+            if (ipfsCID.length() < 10) {
+                Serial.println("[ART] Invalid IPFS CID");
+                sendMessage("ERR:ART_INVALID_CID");
+            } else if (artistName.length() == 0 || workTitle.length() == 0) {
+                Serial.println("[ART] Missing artist name or work title");
+                sendMessage("ERR:ART_MISSING_METADATA");
+            } else {
+                // Log artwork to SD card
+                String artEntry = getMissionTime() + "|" + ipfsCID + "|" + artistName + "|" + workTitle;
+
+                if (logArtwork(artEntry.c_str())) {
+                    Serial.println("[ART] Artwork stored: " + artEntry);
+                    sendMessage("OK:ART_STORED|" + ipfsCID);
+                } else {
+                    Serial.println("[ART] Failed to store artwork");
+                    sendMessage("ERR:ART_STORE_FAILED");
+                }
+            }
+        }
+    }
+    else if (command.equals("artworkList")) {
+        // List all ascended artworks
+        Serial.println("[CMD] artworkList");
+        listArtworks();
+    }
     else {
         Serial.println("[CMD] Unknown command: " + command);
         sendMessage("ERR:UNKNOWN_CMD:" + command);

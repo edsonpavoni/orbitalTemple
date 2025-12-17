@@ -421,3 +421,93 @@ bool hasSDSpace(size_t bytesNeeded) {
     uint64_t freeBytes = SD.totalBytes() - SD.usedBytes();
     return freeBytes > (bytesNeeded + SD_MIN_FREE_BYTES);
 }
+
+// ==================== ARTWORK STORAGE ====================
+// Stores artwork references (IPFS CID + metadata) to SD card
+// File: /artworks.log
+// Format per line: T+HH:MM:SS|IPFS_CID|ArtistName|WorkTitle
+
+#define ARTWORK_LOG_PATH "/artworks.log"
+
+bool logArtwork(const char *entry) {
+    if (!SDOK) {
+        Serial.println("[ART] SD card not available");
+        return false;
+    }
+
+    // Check space
+    if (!hasSDSpace(strlen(entry) + 100)) {
+        Serial.println("[ART] Not enough space on SD card");
+        return false;
+    }
+
+    // Retry loop - artwork entries are important
+    for (int attempt = 1; attempt <= SD_WRITE_RETRIES; attempt++) {
+        feedWatchdog();
+
+        File file = SD.open(ARTWORK_LOG_PATH, FILE_APPEND);
+        if (!file) {
+            Serial.printf("[ART] Attempt %d: Failed to open artwork log\n", attempt);
+            if (attempt < SD_WRITE_RETRIES) {
+                delay(SD_RETRY_DELAY);
+                continue;
+            }
+            return false;
+        }
+
+        // Write entry with newline
+        size_t written = file.println(entry);
+        file.close();
+
+        if (written > 0) {
+            Serial.printf("[ART] Artwork logged successfully (attempt %d)\n", attempt);
+            return true;
+        }
+
+        Serial.printf("[ART] Attempt %d: Write failed\n", attempt);
+        if (attempt < SD_WRITE_RETRIES) {
+            delay(SD_RETRY_DELAY);
+        }
+    }
+
+    return false;
+}
+
+void listArtworks() {
+    if (!isSDAvailable()) return;
+
+    feedWatchdog();
+
+    Serial.println("[ART] Listing artworks");
+
+    File file = SD.open(ARTWORK_LOG_PATH, FILE_READ);
+    if (!file) {
+        Serial.println("[ART] No artwork log found");
+        sendMessage("ART:EMPTY");
+        return;
+    }
+
+    // Count entries and send
+    int count = 0;
+    sendMessage("ART:LIST_START");
+    delay(100);
+
+    while (file.available()) {
+        feedWatchdog();
+
+        String line = file.readStringUntil('\n');
+        line.trim();
+
+        if (line.length() > 0) {
+            count++;
+            // Send each artwork entry
+            sendMessage("ART:" + String(count) + "|" + line);
+            delay(50);
+        }
+    }
+
+    file.close();
+
+    sendMessage("ART:LIST_END|COUNT:" + String(count));
+    Serial.printf("[ART] Listed %d artworks\n", count);
+}

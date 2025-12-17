@@ -61,4 +61,15 @@ bool hasSDSpace(size_t bytesNeeded);
 // Minimum free space threshold (bytes) - reject writes below this
 #define SD_MIN_FREE_BYTES  1048576  // 1 MB minimum free space
 
+// ==================== ARTWORK STORAGE ====================
+// Store artwork references (IPFS CID + artist + title) to SD card
+// Used for Bitforms gallery proposal - curated artwork sent to space
+
+// Log an artwork entry to /artworks.log
+// Entry format: "T+HH:MM:SS|IPFS_CID|ArtistName|WorkTitle"
+bool logArtwork(const char *entry);
+
+// List all stored artworks via LoRa
+void listArtworks();
+
 #endif // MEMOR_H

@@ -29,7 +29,6 @@
 #include "id.h"
 #include "sensors.h"
 #include "radiation.h"
-#include "image.h"
 #include "accel.h"
 
 void setupGeneral() {
@@ -113,10 +112,6 @@ void setupGeneral() {
 
     // Feed watchdog
     feedWatchdog();
-
-    // ==================== IMAGE TRANSFER INITIALIZATION ====================
-    Serial.println("[SETUP] Initializing image transfer system...");
-    initImageTransfer();
 
     // ==================== ACCELEROMETER RECORDING INITIALIZATION ====================
     Serial.println("[SETUP] Initializing accelerometer recording system...");

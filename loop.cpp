@@ -40,7 +40,6 @@
 #include "sensors.h"
 #include "memor.h"
 #include "radiation.h"
-#include "image.h"
 #include "accel.h"
 
 // ==================== LOCAL VARIABLES ====================
@@ -301,50 +300,6 @@ void processMessage(const String& message) {
         radMsg += String((millis() - lastScrubTime) / 1000);
         radMsg += "s_ago";
         sendMessage(radMsg);
-    }
-    // ==================== IMAGE TRANSFER COMMANDS ====================
-    else if (command.equals("ImageStart")) {
-        // Start image transfer
-        // Path: filename, Data: totalChunks:expectedSize
-        Serial.println("[CMD] Image start");
-        if (path.length() == 0) {
-            sendMessage("ERR:IMG_NO_FILENAME");
-        } else {
-            int colonIdx = data.indexOf(':');
-            if (colonIdx == -1) {
-                sendMessage("ERR:IMG_INVALID_PARAMS");
-            } else {
-                uint16_t totalChunks = data.substring(0, colonIdx).toInt();
-                uint16_t expectedSize = data.substring(colonIdx + 1).toInt();
-                imageStart(pathCStr, totalChunks, expectedSize);
-            }
-        }
-    }
-    else if (command.equals("ImageChunk")) {
-        // Receive image chunk
-        // Path: chunk number, Data: base64 encoded data
-        Serial.println("[CMD] Image chunk");
-        if (data.length() == 0) {
-            sendMessage("ERR:IMG_EMPTY_CHUNK");
-        } else {
-            uint16_t chunkNum = path.toInt();
-            imageChunk(chunkNum, dataCStr);
-        }
-    }
-    else if (command.equals("ImageEnd")) {
-        // Finalize image transfer
-        Serial.println("[CMD] Image end");
-        imageEnd();
-    }
-    else if (command.equals("ImageCancel")) {
-        // Cancel current transfer
-        Serial.println("[CMD] Image cancel");
-        imageCancel();
-    }
-    else if (command.equals("ImageStatus")) {
-        // Get image transfer status
-        Serial.println("[CMD] Image status");
-        sendMessage(getImageStatus());
     }
     // ==================== ACCELEROMETER RECORDING COMMANDS ====================
     else if (command.equals("AccelRecord")) {
@@ -618,9 +573,6 @@ void mainLoop() {
                 sendTelemetry();
                 lastTelemetryTime = now;
             }
-
-            // Check for image transfer timeout
-            imageTimeoutCheck();
 
             // Process accelerometer recording (must be called frequently for 30Hz sampling)
             accelRecordingTick();

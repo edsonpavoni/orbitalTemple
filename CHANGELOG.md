@@ -8,7 +8,7 @@
 
 ## Overview
 
-V1.21 is a critical bug fix release that addresses all major issues identified in multiple code reviews (internal, Claude AI, Gemini AI). This version includes radiation protection, image upload capability, and comprehensive input validation. Recommended for final integration testing before flight.
+V1.21 is a critical bug fix release that addresses all major issues identified in multiple code reviews (internal, Claude AI, Gemini AI). This version includes radiation protection, artwork ascension via IPFS, and comprehensive input validation. Recommended for final integration testing before flight.
 
 ---
 
@@ -200,35 +200,7 @@ if (now - lastRecoveryAttempt >= RECOVERY_INTERVAL) {
 
 ## New Features
 
-### 11. Image Transfer Protocol - ADDED
-**Files:** `image.h`, `image.cpp`, `loop.cpp`
-
-Upload small images (64x64 pixels, up to 8KB) to the satellite via LoRa.
-
-**Protocol:**
-1. `ImageStart` - Begin transfer (filename, chunk count, size)
-2. `ImageChunk` - Send base64-encoded chunks (128 bytes each)
-3. `ImageEnd` - Finalize and verify
-
-**Features:**
-- Base64 encoding for binary data over LoRa
-- Out-of-order chunk reception supported
-- Missing chunk detection
-- 60-second timeout protection
-- Duplicate chunk handling
-
-**Commands:**
-| Command | Format |
-|---------|--------|
-| `ImageStart` | `SAT-ImageStart&/image.jpg@40:5120#HMAC` |
-| `ImageChunk` | `SAT-ImageChunk&0@[base64]#HMAC` |
-| `ImageEnd` | `SAT-ImageEnd&@#HMAC` |
-| `ImageCancel` | `SAT-ImageCancel&@#HMAC` |
-| `ImageStatus` | `SAT-ImageStatus&@#HMAC` |
-
----
-
-### 12. Accelerometer Recording System - ADDED
+### 11. Accelerometer Recording System - ADDED
 **Files:** `accel.h`, `accel.cpp`, `loop.cpp`, `config.cpp`
 
 Record 60 seconds of accelerometer data at 30Hz for orbital dynamics analysis.
@@ -375,8 +347,6 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 | `memor.cpp` | 424 | File operations with retry logic |
 | `radiation.h` | 156 | TMR templates, CRC functions |
 | `radiation.cpp` | 293 | SEU protection implementation |
-| `image.h` | 81 | Image transfer protocol |
-| `image.cpp` | 308 | Image transfer implementation |
 | `accel.h` | 98 | Accelerometer recording protocol |
 | `accel.cpp` | 297 | Accelerometer recording implementation |
 | `id.h` | 16 | ID function declaration |
@@ -397,8 +367,8 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 - [ ] Verify state persists across reboots
 - [ ] Verify boot count starts at 1
 - [ ] Test all SD card commands
-- [ ] Test image transfer protocol
 - [ ] Test accelerometer recording (AccelRecord, AccelList)
+- [ ] Test artwork ascension (artworkAscension, artworkList)
 - [ ] Verify auto-recording triggers on first ground contact
 - [ ] Test antenna deployment sequence
 - [ ] Run 7-day continuous soak test
@@ -410,7 +380,6 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 - [ ] Update command format: `SAT_ID-COMMAND&PATH@DATA#HMAC`
 - [ ] Implement HMAC calculation with shared key
 - [ ] Update telemetry parser for new format
-- [ ] Add image upload capability
 
 **Full test protocol:** [`docs/TEST_PROTOCOL.md`](docs/TEST_PROTOCOL.md)
 
@@ -421,7 +390,7 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 1. **Command format changed:** Must include HMAC signature
 2. **Telemetry format changed:** Now includes timestamp prefix
 3. **Function renamed:** `sendMensage()` → `sendMessage()`
-4. **New commands added:** Image transfer, GetRadStatus
+4. **New commands added:** artworkAscension, GetRadStatus, AccelRecord
 
 ---
 
@@ -444,7 +413,7 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 | State persistence | None | EEPROM + CRC |
 | Beacon | Fixed interval | Adaptive |
 | Radiation protection | None | TMR + CRC32 |
-| Image upload | None | 64x64 pixel support |
+| Artwork ascension | None | IPFS-based storage |
 | Accelerometer recording | None | 30Hz for 60s |
 | Boot counter | Bug (started at 2) | Fixed (starts at 1) |
 | ADC handling | Race condition | Fixed |

@@ -93,9 +93,6 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 | `ReadFile` | Retrieves what was written |
 | `GetState` | Reports mission state, boot count, antenna status |
 | `GetRadStatus` | Reports radiation events — how many bits the cosmos tried to flip |
-| `ImageStart` | Begin uploading an image (64×64 pixels max) |
-| `ImageChunk` | Send one piece of the image |
-| `ImageEnd` | Finalize the image transfer |
 | `AccelRecord` | Record 60 seconds of accelerometer data at 30Hz |
 | `AccelList` | List available accelerometer recordings |
 | `artworkAscension` | Ascend artwork to orbit — IPFS CID, artist name, work title |
@@ -131,7 +128,6 @@ The "InterPlanetary" File System — now literally interplanetary.
 ├── sensors.h/cpp   # The senses
 ├── memor.h/cpp     # The memory
 ├── radiation.h/cpp # The shield
-├── image.h/cpp     # The eyes — receives images from Earth
 ├── accel.h/cpp     # The sense of motion — records orbital dynamics
 └── id.h/cpp        # The name of the temple itself
 ```

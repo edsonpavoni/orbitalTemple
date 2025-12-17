@@ -148,14 +148,41 @@ extern const uint8_t HMAC_KEY[HMAC_KEY_LENGTH];
 #define BEACON_MSG_LOST       "Por mais distante, o errante navegante, quem jamais te esqueceria?"
 
 // ==================== EEPROM CONFIGURATION ====================
+// Centralized EEPROM address map - ALL addresses defined here to prevent collisions
+//
+// MEMORY MAP:
+// ┌─────────┬──────────────────────┬───────────────────────────────────┐
+// │ Address │ Size (bytes)         │ Description                       │
+// ├─────────┼──────────────────────┼───────────────────────────────────┤
+// │ 0       │ 1                    │ Magic byte (0xAB = valid data)    │
+// │ 1       │ 1                    │ State machine state               │
+// │ 2-5     │ 4                    │ Boot count (uint32_t)             │
+// │ 6       │ 1                    │ Antenna deployed flag             │
+// │ 7-10    │ 4                    │ Mission start time (uint32_t)     │
+// │ 11-99   │ 89                   │ [RESERVED - future use]           │
+// │ 100-103 │ 4                    │ CRC32 checksum (uint32_t)         │
+// │ 104-199 │ 96                   │ [RESERVED - future use]           │
+// │ 200     │ 1                    │ First accel recording done flag   │
+// │ 201-511 │ 311                  │ [RESERVED - future use]           │
+// └─────────┴──────────────────────┴───────────────────────────────────┘
 
-#define EEPROM_SIZE            512
-#define EEPROM_MAGIC           0xAB       // Magic byte to verify valid data
-#define EEPROM_ADDR_MAGIC      0
-#define EEPROM_ADDR_STATE      1
-#define EEPROM_ADDR_BOOTCOUNT  2          // 4 bytes (uint32_t)
-#define EEPROM_ADDR_DEPLOY_OK  6          // 1 byte (bool)
-#define EEPROM_ADDR_MISSION_START 7       // 4 bytes (uint32_t) - millis at first boot
+#define EEPROM_SIZE              512
+
+// Magic byte to verify EEPROM contains valid data
+#define EEPROM_MAGIC             0xAB
+
+// State persistence block (addresses 0-10)
+#define EEPROM_ADDR_MAGIC        0          // 1 byte
+#define EEPROM_ADDR_STATE        1          // 1 byte
+#define EEPROM_ADDR_BOOTCOUNT    2          // 4 bytes (uint32_t)
+#define EEPROM_ADDR_DEPLOY_OK    6          // 1 byte (bool)
+#define EEPROM_ADDR_MISSION_START 7         // 4 bytes (uint32_t)
+
+// CRC protection (address 100-103)
+#define EEPROM_ADDR_CRC          100        // 4 bytes (uint32_t) - protects bytes 0-99
+
+// Accelerometer module (address 200)
+#define EEPROM_ADDR_FIRST_ACCEL  200        // 1 byte (0xAA = first recording done)
 
 // ==================== SD CARD CONFIGURATION ====================
 

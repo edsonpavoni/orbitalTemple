@@ -140,14 +140,14 @@ void saveStateWithCRC() {
     EEPROM.put(EEPROM_ADDR_MISSION_START, missionStartTime);
 
     // Calculate CRC of first 100 bytes
-    uint8_t buffer[EEPROM_CRC_OFFSET];
-    for (int i = 0; i < EEPROM_CRC_OFFSET; i++) {
+    uint8_t buffer[EEPROM_ADDR_CRC];
+    for (int i = 0; i < EEPROM_ADDR_CRC; i++) {
         buffer[i] = EEPROM.read(i);
     }
-    uint32_t crc = calculateCRC32(buffer, EEPROM_CRC_OFFSET);
+    uint32_t crc = calculateCRC32(buffer, EEPROM_ADDR_CRC);
 
     // Write CRC
-    EEPROM.put(EEPROM_CRC_OFFSET, crc);
+    EEPROM.put(EEPROM_ADDR_CRC, crc);
 
     EEPROM.commit();
 
@@ -163,14 +163,14 @@ bool loadStateWithCRC() {
 
     // Read stored CRC
     uint32_t storedCRC;
-    EEPROM.get(EEPROM_CRC_OFFSET, storedCRC);
+    EEPROM.get(EEPROM_ADDR_CRC, storedCRC);
 
     // Calculate CRC of data
-    uint8_t buffer[EEPROM_CRC_OFFSET];
-    for (int i = 0; i < EEPROM_CRC_OFFSET; i++) {
+    uint8_t buffer[EEPROM_ADDR_CRC];
+    for (int i = 0; i < EEPROM_ADDR_CRC; i++) {
         buffer[i] = EEPROM.read(i);
     }
-    uint32_t calculatedCRC = calculateCRC32(buffer, EEPROM_CRC_OFFSET);
+    uint32_t calculatedCRC = calculateCRC32(buffer, EEPROM_ADDR_CRC);
 
     // Compare CRCs
     if (storedCRC != calculatedCRC) {

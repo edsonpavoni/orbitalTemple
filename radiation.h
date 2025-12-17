@@ -118,13 +118,7 @@ bool tmrScrub(TMR<T>& tmr) {
 uint32_t calculateCRC32(const uint8_t* data, size_t length);
 
 // ==================== EEPROM WITH CRC ====================
-
-// EEPROM layout with CRC protection:
-// [0]      Magic byte (0xAB)
-// [1-N]    State data
-// [N+1-N+4] CRC32 of bytes 0-N
-
-#define EEPROM_CRC_OFFSET  100  // CRC stored at byte 100-103
+// Note: EEPROM addresses are centralized in config.h (see EEPROM_ADDR_CRC)
 
 // Save state with CRC protection
 void saveStateWithCRC();

@@ -14,8 +14,7 @@ AccelRecording accelRecording;
 // Flag for first contact auto-recording (prevents re-triggering on reboot)
 bool firstAccelRecordingDone = false;
 
-// EEPROM address for first recording flag (after other state data)
-#define EEPROM_FIRST_ACCEL_ADDR 200
+// Note: EEPROM address for first recording flag is defined in config.h (EEPROM_ADDR_FIRST_ACCEL)
 
 // Interval between samples in milliseconds (30Hz = ~33.33ms)
 #define SAMPLE_INTERVAL_MS   (1000 / ACCEL_SAMPLE_RATE)
@@ -35,7 +34,7 @@ void initAccelRecording() {
     accelRecording.lastProgressTime = 0;
 
     // Load first recording flag from EEPROM
-    uint8_t flag = EEPROM.read(EEPROM_FIRST_ACCEL_ADDR);
+    uint8_t flag = EEPROM.read(EEPROM_ADDR_FIRST_ACCEL);
     firstAccelRecordingDone = (flag == 0xAA);  // 0xAA = recording done
     Serial.printf("[ACCEL] First recording flag: %s\n",
                   firstAccelRecordingDone ? "DONE" : "PENDING");
@@ -71,7 +70,7 @@ void checkFirstContactRecording() {
     if (accelStartRecording()) {
         // Mark as done and persist to EEPROM
         firstAccelRecordingDone = true;
-        EEPROM.write(EEPROM_FIRST_ACCEL_ADDR, 0xAA);
+        EEPROM.write(EEPROM_ADDR_FIRST_ACCEL, 0xAA);
         EEPROM.commit();
         Serial.println("[ACCEL] First contact recording started and flag persisted");
     } else {

@@ -385,6 +385,11 @@ SAT001-COMMAND&PATH@DATA#HMAC
 | Get state | `SAT001-GetState&@#[HMAC]` |
 | Radiation status | `SAT001-GetRadStatus&@#[HMAC]` |
 | Restart | `SAT001-MCURestart&@#[HMAC]` |
+| Start image transfer | `SAT001-ImageStart&/image.jpg@40:5120#[HMAC]` |
+| Send image chunk | `SAT001-ImageChunk&0@[base64 data]#[HMAC]` |
+| End image transfer | `SAT001-ImageEnd&@#[HMAC]` |
+| Cancel image | `SAT001-ImageCancel&@#[HMAC]` |
+| Image status | `SAT001-ImageStatus&@#[HMAC]` |
 
 ---
 

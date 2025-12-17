@@ -29,6 +29,7 @@
 #include "id.h"
 #include "sensors.h"
 #include "radiation.h"
+#include "image.h"
 
 void setupGeneral() {
     // Initialize serial first for debugging
@@ -107,6 +108,10 @@ void setupGeneral() {
 
     // Feed watchdog
     feedWatchdog();
+
+    // ==================== IMAGE TRANSFER INITIALIZATION ====================
+    Serial.println("[SETUP] Initializing image transfer system...");
+    initImageTransfer();
 
     // ==================== INITIAL SENSOR READING ====================
     Serial.println("[SETUP] Reading initial sensor values...");

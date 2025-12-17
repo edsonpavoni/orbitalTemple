@@ -347,20 +347,6 @@ Day 7: Send Status - all systems OK?
 
 ---
 
-## Step 19: Thermal Test (Optional)
-
-If you have access to a thermal chamber:
-
-1. Heat to +60°C, wait 2 hours, send Ping
-2. Cool to -20°C, wait 2 hours, send Ping
-3. Cycle between hot and cold 5 times
-
-**What you should see:**
-
-The satellite responds to Ping at all temperatures.
-
----
-
 ## Final Checklist
 
 Before declaring the satellite ready for flight:

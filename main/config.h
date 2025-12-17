@@ -44,6 +44,9 @@
 // HMAC for authentication
 #include "mbedtls/md.h"
 
+// Radiation protection (forward declaration - full include in .cpp files)
+// See radiation.h for TMR and CRC functions
+
 // ==================== PIN DEFINITIONS ====================
 
 // Luminosity sensor

@@ -10,6 +10,7 @@
  */
 
 #include "config.h"
+#include "radiation.h"
 
 // ==================== HMAC KEY ====================
 // IMPORTANT: Generate a unique 32-byte key before flight!
@@ -91,26 +92,18 @@ void feedWatchdog() {
 // ==================== STATE PERSISTENCE ====================
 
 void saveState() {
-    if (!SDOK && EEPROM.length() == 0) {
-        // EEPROM not initialized
-        return;
-    }
+    // Sync critical variables to TMR copies for radiation protection
+    tmrWrite(tmr_missionState, (uint8_t)currentState);
+    tmrWrite(tmr_antennaState, (uint8_t)antennaState);
+    tmrWrite(tmr_antennaDeployed, antennaDeployed);
+    tmrWrite(tmr_groundContact, groundContactEstablished);
+    tmrWrite(tmr_rfOK, RFOK);
+    tmrWrite(tmr_imuOK, IMUOK);
+    tmrWrite(tmr_sdOK, SDOK);
+    tmrWrite(tmr_bootCount, bootCount);
 
-    EEPROM.write(EEPROM_ADDR_MAGIC, EEPROM_MAGIC);
-    EEPROM.write(EEPROM_ADDR_STATE, (uint8_t)currentState);
-
-    // Save boot count (4 bytes)
-    EEPROM.put(EEPROM_ADDR_BOOTCOUNT, bootCount);
-
-    // Save antenna deployed flag
-    EEPROM.write(EEPROM_ADDR_DEPLOY_OK, antennaDeployed ? 1 : 0);
-
-    // Save mission start time
-    EEPROM.put(EEPROM_ADDR_MISSION_START, missionStartTime);
-
-    EEPROM.commit();
-
-    Serial.println("[STATE] State saved to EEPROM");
+    // Use CRC-protected save
+    saveStateWithCRC();
 }
 
 void loadState() {

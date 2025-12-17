@@ -39,6 +39,7 @@
 #include "lora.h"
 #include "sensors.h"
 #include "memor.h"
+#include "radiation.h"
 
 // ==================== LOCAL VARIABLES ====================
 static unsigned long lastTelemetryTime = 0;
@@ -111,6 +112,10 @@ void sendTelemetry() {
         telemetry += String(getSDFreePercent());
         telemetry += "%";
     }
+
+    // Add radiation protection status (SEU corrections)
+    telemetry += "|SEU:";
+    telemetry += String(seuCorrectionsTotal);
 
     Serial.println("[TELEM] " + telemetry);
     sendMessage(telemetry);
@@ -285,6 +290,16 @@ void processMessage(const String& message) {
         saveState();
         sendMessage("OK:FORCED_OPERATIONAL");
     }
+    else if (command.equals("GetRadStatus")) {
+        // Get radiation protection status
+        Serial.println("[CMD] Get radiation status");
+        String radMsg = "RAD:SEU_TOTAL:";
+        radMsg += String(seuCorrectionsTotal);
+        radMsg += "|LAST_SCRUB:";
+        radMsg += String((millis() - lastScrubTime) / 1000);
+        radMsg += "s_ago";
+        sendMessage(radMsg);
+    }
     else {
         Serial.println("[CMD] Unknown command: " + command);
         sendMessage("ERR:UNKNOWN_CMD:" + command);
@@ -407,6 +422,9 @@ void mainLoop() {
     if (now - lastWdtFeed >= WDT_FEED_INTERVAL) {
         feedWatchdog();
     }
+
+    // Radiation protection - scrub TMR variables periodically
+    radiationProtectionTick();
 
     // State machine
     switch (currentState) {

@@ -28,6 +28,7 @@
 #include "lora.h"
 #include "id.h"
 #include "sensors.h"
+#include "radiation.h"
 
 void setupGeneral() {
     // Initialize serial first for debugging
@@ -57,8 +58,9 @@ void setupGeneral() {
     Serial.println("[SETUP] Initializing EEPROM...");
     EEPROM.begin(EEPROM_SIZE);
 
-    // Load previous state (or initialize if first boot)
-    loadState();
+    // Initialize radiation protection and load previous state with CRC verification
+    // This also initializes TMR variables for critical state
+    initRadiationProtection();
 
     // Feed watchdog
     feedWatchdog();

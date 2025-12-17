@@ -11,6 +11,7 @@
 
 #include "config.h"
 #include "radiation.h"
+#include "accel.h"
 
 // ==================== HMAC KEY ====================
 // IMPORTANT: Generate a unique 32-byte key before flight!
@@ -247,7 +248,9 @@ unsigned long getBeaconInterval() {
 void registerGroundContact() {
     unsigned long now = millis();
 
-    if (!groundContactEstablished) {
+    bool isFirstContact = !groundContactEstablished;
+
+    if (isFirstContact) {
         Serial.println("[BEACON] First ground contact established!");
         groundContactEstablished = true;
     }
@@ -255,6 +258,11 @@ void registerGroundContact() {
     lastGroundContact = now;
     Serial.printf("[BEACON] Ground contact registered at T+%lu ms\n",
                   now - missionStartTime);
+
+    // Trigger first accelerometer recording on initial contact
+    if (isFirstContact) {
+        checkFirstContactRecording();
+    }
 }
 
 // Send a beacon message

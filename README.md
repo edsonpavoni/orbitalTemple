@@ -96,6 +96,8 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 | `ImageStart` | Begin uploading an image (64×64 pixels max) |
 | `ImageChunk` | Send one piece of the image |
 | `ImageEnd` | Finalize the image transfer |
+| `AccelRecord` | Record 60 seconds of accelerometer data at 30Hz |
+| `AccelList` | List available accelerometer recordings |
 
 ---
 
@@ -111,6 +113,7 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 ├── memor.h/cpp     # The memory
 ├── radiation.h/cpp # The shield
 ├── image.h/cpp     # The eyes — receives images from Earth
+├── accel.h/cpp     # The sense of motion — records orbital dynamics
 └── id.h/cpp        # The name of the temple itself
 ```
 

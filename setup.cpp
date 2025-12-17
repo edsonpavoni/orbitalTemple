@@ -30,6 +30,7 @@
 #include "sensors.h"
 #include "radiation.h"
 #include "image.h"
+#include "accel.h"
 
 void setupGeneral() {
     // Initialize serial first for debugging
@@ -116,6 +117,10 @@ void setupGeneral() {
     // ==================== IMAGE TRANSFER INITIALIZATION ====================
     Serial.println("[SETUP] Initializing image transfer system...");
     initImageTransfer();
+
+    // ==================== ACCELEROMETER RECORDING INITIALIZATION ====================
+    Serial.println("[SETUP] Initializing accelerometer recording system...");
+    initAccelRecording();
 
     // ==================== INITIAL SENSOR READING ====================
     Serial.println("[SETUP] Reading initial sensor values...");

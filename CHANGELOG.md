@@ -228,7 +228,47 @@ Upload small images (64x64 pixels, up to 8KB) to the satellite via LoRa.
 
 ---
 
-### 12. HMAC Authentication - ADDED
+### 12. Accelerometer Recording System - ADDED
+**Files:** `accel.h`, `accel.cpp`, `loop.cpp`, `config.cpp`
+
+Record 60 seconds of accelerometer data at 30Hz for orbital dynamics analysis.
+
+**Features:**
+- 30Hz sampling rate (1,800 samples per recording)
+- Binary format: 16-byte header + 12 bytes/sample (~22KB total)
+- Automatic first recording on initial ground contact
+- Manual recording via command
+- Files stored in `/accel/` directory
+- Retrieved via existing `ReadFile` command
+
+**Data Format:**
+```
+Header (16 bytes):
+  - Magic: "ACCEL30" (7 bytes)
+  - Version: 1 byte
+  - Sample rate: 2 bytes (uint16_t)
+  - Sample count: 2 bytes (uint16_t)
+  - Reserved: 4 bytes
+
+Per sample (12 bytes):
+  - X: float (4 bytes, in g)
+  - Y: float (4 bytes, in g)
+  - Z: float (4 bytes, in g)
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `AccelRecord` | Start 60-second recording |
+| `AccelStatus` | Get recording status |
+| `AccelList` | List available recordings |
+| `AccelCancel` | Cancel current recording |
+
+**Auto-Recording:** First accelerometer recording is automatically triggered on initial ground contact and persisted in EEPROM.
+
+---
+
+### 14. HMAC Authentication - ADDED
 **Files:** `config.h`, `config.cpp`, `loop.cpp`
 
 - HMAC-SHA256 message authentication
@@ -263,7 +303,7 @@ ab4ec7121663a28e7226dbaa238da777-Status&@#a1b2c3d4e5f6g7h8
 
 ---
 
-### 14. SD Card Retry Logic - ADDED
+### 15. SD Card Retry Logic - ADDED
 **File:** `memor.cpp`
 
 Names are sacred - we retry to ensure they are saved:
@@ -273,7 +313,7 @@ Names are sacred - we retry to ensure they are saved:
 
 ---
 
-### 15. State Persistence - ADDED
+### 16. State Persistence - ADDED
 **Files:** `config.cpp`, `radiation.cpp`
 
 **Persisted in EEPROM with CRC32 protection:**
@@ -322,11 +362,11 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 |------|-------|-------------|
 | `main.ino` | 112 | Entry point with ASCII art header |
 | `config.h` | 246 | Configuration, pins, constants, externs |
-| `config.cpp` | 310 | Variable definitions, HMAC, beacon system |
+| `config.cpp` | 317 | Variable definitions, HMAC, beacon system |
 | `setup.h` | 20 | Setup function declaration |
-| `setup.cpp` | 184 | Initialization with watchdog, ADC setup |
+| `setup.cpp` | 188 | Initialization with watchdog, ADC setup |
 | `loop.h` | 33 | Loop function declarations |
-| `loop.cpp` | 602 | State machine, commands, validation |
+| `loop.cpp` | 626 | State machine, commands, validation |
 | `lora.h` | 42 | LoRa function declarations |
 | `lora.cpp` | 249 | Radio communication with retry logic |
 | `sensors.h` | 40 | Sensor function declarations |
@@ -337,9 +377,11 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 | `radiation.cpp` | 293 | SEU protection implementation |
 | `image.h` | 81 | Image transfer protocol |
 | `image.cpp` | 308 | Image transfer implementation |
+| `accel.h` | 98 | Accelerometer recording protocol |
+| `accel.cpp` | 297 | Accelerometer recording implementation |
 | `id.h` | 16 | ID function declaration |
 | `id.cpp` | 23 | Satellite ID |
-| **TOTAL** | **~3,400** | |
+| **TOTAL** | **~3,800** | |
 
 ---
 
@@ -356,6 +398,8 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 - [ ] Verify boot count starts at 1
 - [ ] Test all SD card commands
 - [ ] Test image transfer protocol
+- [ ] Test accelerometer recording (AccelRecord, AccelList)
+- [ ] Verify auto-recording triggers on first ground contact
 - [ ] Test antenna deployment sequence
 - [ ] Run 7-day continuous soak test
 - [ ] Power cycle testing (random resets)
@@ -401,6 +445,7 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 | Beacon | Fixed interval | Adaptive |
 | Radiation protection | None | TMR + CRC32 |
 | Image upload | None | 64x64 pixel support |
+| Accelerometer recording | None | 30Hz for 60s |
 | Boot counter | Bug (started at 2) | Fixed (starts at 1) |
 | ADC handling | Race condition | Fixed |
 | Unit tests | None | 50 tests |

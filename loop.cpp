@@ -41,6 +41,7 @@
 #include "memor.h"
 #include "radiation.h"
 #include "image.h"
+#include "accel.h"
 
 // ==================== LOCAL VARIABLES ====================
 static unsigned long lastTelemetryTime = 0;
@@ -345,6 +346,27 @@ void processMessage(const String& message) {
         Serial.println("[CMD] Image status");
         sendMessage(getImageStatus());
     }
+    // ==================== ACCELEROMETER RECORDING COMMANDS ====================
+    else if (command.equals("AccelRecord")) {
+        // Start 60-second accelerometer recording at 30Hz
+        Serial.println("[CMD] Accel record");
+        accelStartRecording();
+    }
+    else if (command.equals("AccelStatus")) {
+        // Get accelerometer recording status
+        Serial.println("[CMD] Accel status");
+        sendMessage(getAccelStatus());
+    }
+    else if (command.equals("AccelList")) {
+        // List available accelerometer recordings
+        Serial.println("[CMD] Accel list");
+        accelListRecordings();
+    }
+    else if (command.equals("AccelCancel")) {
+        // Cancel current accelerometer recording
+        Serial.println("[CMD] Accel cancel");
+        accelCancelRecording();
+    }
     else {
         Serial.println("[CMD] Unknown command: " + command);
         sendMessage("ERR:UNKNOWN_CMD:" + command);
@@ -555,6 +577,9 @@ void mainLoop() {
 
             // Check for image transfer timeout
             imageTimeoutCheck();
+
+            // Process accelerometer recording (must be called frequently for 30Hz sampling)
+            accelRecordingTick();
 
             // Check for radio recovery
             if (radioNeedsRecovery()) {

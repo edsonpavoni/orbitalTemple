@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "author": "Orbital Temple",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": { "frequency": "240" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 50,
+      "left": 200,
+      "attrs": { "color": "green", "label": "Antenna Deploy" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 100,
+      "left": 200,
+      "attrs": { "color": "blue", "label": "Antenna Switch" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot1",
+      "top": 150,
+      "left": 200,
+      "attrs": { "label": "Battery Voltage" }
+    }
+  ],
+  "connections": [
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []],
+    ["esp:27", "led1:A", "green", ["h20"]],
+    ["esp:GND.1", "led1:C", "black", ["h10", "v20"]],
+    ["esp:33", "btn1:1.l", "blue", ["h30"]],
+    ["esp:GND.2", "btn1:2.l", "black", ["h20", "v30"]],
+    ["esp:35", "pot1:SIG", "orange", ["h40"]],
+    ["esp:3V3", "pot1:VCC", "red", ["h50"]],
+    ["esp:GND.3", "pot1:GND", "black", ["h60"]]
+  ]
+}

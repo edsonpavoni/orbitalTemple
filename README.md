@@ -171,31 +171,31 @@ But until then, it listens. It remembers. It keeps the promise.
 ---
 
 
-The Orbital Temple is an artwork,
-and a satellite.
-And although it has "temple" in its name,
-it becomes a temple only if
+The Orbital Temple is an artwork,<br>
+and a satellite.<br>
+And although it has "temple" in its name,<br>
+it becomes a temple only if<br>
 you decide to see it as one.
 
-It exists now as an evocation,
-like the one made by the artists
-in that primordial cave.
+It exists now as an evocation,<br>
+like the one made by the artists<br>
+in that primordial cave.<br>
 And we are still in a cave,
 
-the vast darkness of space,
-where Earth is the torch,
-the only place we know
+the vast darkness of space,<br>
+where Earth is the torch,<br>
+the only place we know<br>
 consciousness exists for sure.
 
-The artist is still working,
-people are still dancing,
-serving the same impulse as our ancestors,
-painting, sculpting, designing our desired future,
-not to decorate but to invoke,
+The artist is still working,<br>
+people are still dancing,<br>
+serving the same impulse as our ancestors,<br>
+painting, sculpting, designing our desired future,<br>
+not to decorate but to invoke,<br>
 so a new temple can be born.
 
-And yes,
+And yes,<br>
 you are invited to dance.
 
-<a href="https://orbitaltemple.art">orbitaltemple.art</a>
+<a href="https://orbitaltemple.art">orbitaltemple.art</a><br>
 Edson Pavoni

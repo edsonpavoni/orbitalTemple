@@ -116,7 +116,7 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 
 | Specification | Value |
 |---------------|-------|
-| Dimensions | 50 × 58 × 64 mm |
+| Dimensions | 50 × 50 × 50 mm |
 | Mass | 250 grams |
 | Altitude | 525 km |
 | Orbit | Sun-synchronous, 97.6° inclination |

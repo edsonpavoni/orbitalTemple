@@ -146,12 +146,42 @@ pio run
 
 ## Before Flight
 
-- [ ] Generate unique HMAC key (`openssl rand -hex 32`)
-- [ ] Update `HMAC_KEY` in `config.cpp`
-- [ ] Verify telemetry shows real sensor values
-- [ ] Test command authentication
-- [ ] Thermal test: -40°C to +85°C
-- [ ] 7-day continuous operation test
+### 1. Change the HMAC Key
+```bash
+openssl rand -hex 32
+```
+Update `HMAC_KEY` in `config.cpp` with the generated key.<br>
+This is your satellite's password. Keep it secret.
+
+### 2. Hardware Tests
+- [ ] Power on → boot message appears within 3 seconds
+- [ ] Boots without USB connected (no serial hang)
+- [ ] Radio transmits beacons (ground station receives)
+- [ ] Radio receives commands (Ping → PONG)
+- [ ] All sensors read real values (not zeros)
+- [ ] SD card writes and reads correctly
+- [ ] Wrong HMAC is rejected
+- [ ] Path traversal is blocked
+
+### 3. State Machine Tests
+- [ ] Boot count increments on each power cycle
+- [ ] Antenna deployment triggers burn wire (GPIO 27)
+- [ ] Antenna state persists after reboot
+- [ ] Satellite never re-deploys antenna after first deployment
+
+### 4. Seven-Day Soak Test
+Leave the satellite running for 7 days with no intervention.
+- [ ] Zero unexpected reboots
+- [ ] Zero error messages
+- [ ] Commands still work on day 7
+
+### 5. Final Preparation
+- [ ] SD card is empty (no test files)
+- [ ] Boot count reset to 0
+- [ ] Battery fully charged
+- [ ] HMAC key is unique (not default)
+
+**Full test protocol:** [`TEST_PROTOCOL.md`](TEST_PROTOCOL.md)
 
 ---
 

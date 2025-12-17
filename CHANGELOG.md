@@ -1,6 +1,6 @@
 # Orbital Temple Satellite Firmware - V1.21 Release Notes
 
-**Release Date:** 2025-12-16
+**Release Date:** 2025-12-17
 **Status:** READY FOR FLIGHT TESTING
 **Previous Version:** V1.2
 
@@ -8,14 +8,14 @@
 
 ## Overview
 
-V1.21 is a critical bug fix release that addresses all major issues identified in the V1.2 code review. This version is recommended for final integration testing before flight.
+V1.21 is a critical bug fix release that addresses all major issues identified in multiple code reviews (internal, Claude AI, Gemini AI). This version includes radiation protection, image upload capability, and comprehensive input validation. Recommended for final integration testing before flight.
 
 ---
 
 ## Critical Fixes (P0)
 
 ### 1. Sensor Variable Shadowing - FIXED
-**File:** `sensors.cpp:39-43, 46-62`
+**File:** `sensors.cpp`
 
 **Problem in V1.2:**
 ```cpp
@@ -40,7 +40,7 @@ void readLumi(){
 ---
 
 ### 2. Duplicate Function Definitions - FIXED
-**Files:** `config.cpp`, `lora.cpp`, `loop.cpp`
+**Files:** `config.cpp`, `lora.cpp`
 
 **Problem in V1.2:**
 - `receivedFlag` was defined in BOTH `lora.cpp` AND `loop.cpp`
@@ -77,29 +77,49 @@ sendMensage():   sync word 0x12  // For TX
 
 ---
 
+### 4. Boot Counter Bug - FIXED
+**File:** `radiation.cpp`
+
+**Problem:** Boot counter started at 2 on first boot instead of 1.
+
+**Fix in V1.21:**
+```cpp
+if (loadStateWithCRC()) {
+    // Existing state - increment
+    bootCount++;
+} else {
+    // First boot starts at 1
+    bootCount = 1;
+}
+```
+
+---
+
+### 5. ADC Resolution Race Condition - FIXED
+**Files:** `sensors.cpp`, `setup.cpp`
+
+**Problem:** `readLumi()` changed ADC resolution mid-execution, causing potential race conditions if interrupted.
+
+**Fix in V1.21:**
+- ADC resolution set once in `setup.cpp` (12-bit native)
+- Never changed during operation
+- `readLumi()` calculations updated for 12-bit (4096 levels)
+
+---
+
 ## High Priority Fixes (P1)
 
-### 4. Hardware Watchdog Timer - ADDED
+### 6. Hardware Watchdog Timer - ADDED
 **Files:** `config.h`, `config.cpp`, `setup.cpp`
 
-**New in V1.21:**
 - ESP32 hardware watchdog with 60-second timeout
 - Automatic reset if code hangs
 - `feedWatchdog()` called throughout all operations
 - Survives infinite loops, deadlocks, hardware faults
 
-```cpp
-// Setup
-esp_task_wdt_init(WDT_TIMEOUT_SECONDS, true);
-esp_task_wdt_add(NULL);
-
-// In all long operations
-feedWatchdog();
-```
-
 ---
 
-### 5. Input Validation - ADDED
+### 7. Input Validation - ADDED
 **File:** `loop.cpp:validateMessage()`
 
 **New validations:**
@@ -111,18 +131,27 @@ feedWatchdog();
 - Path traversal prevention (`..` blocked)
 - HMAC authentication required
 
-```cpp
-bool validateMessage(const String& msg, String& satId, String& command,
-                     String& path, String& data, String& hmac) {
-    // All validations performed before any command execution
-}
-```
+---
+
+### 8. Radiation Protection (TMR + CRC) - ADDED
+**Files:** `radiation.h`, `radiation.cpp`
+
+Protection against Single Event Upsets (SEUs) from charged particles in space:
+
+| Technique | Protection |
+|-----------|------------|
+| **Triple Modular Redundancy (TMR)** | Critical variables stored 3x with 2-of-3 voting |
+| **CRC32 checksums** | EEPROM data verified on boot |
+| **Periodic scrubbing** | Every 60 seconds, TMR checked/corrected |
+| **Catastrophic failure handling** | Auto-restart if all 3 TMR copies differ |
+
+**Protected variables:** mission state, antenna state, boot count, hardware flags
+
+**New command:** `GetRadStatus` - returns total SEU corrections
 
 ---
 
-## Medium Priority Fixes (P2)
-
-### 6. Non-Blocking State Machine - IMPLEMENTED
+### 9. Non-Blocking State Machine - IMPLEMENTED
 **File:** `loop.cpp`
 
 **Problem in V1.2:**
@@ -145,7 +174,6 @@ switch (currentState) {
         // Still check for incoming commands!
         if (receivedFlag) { /* process */ }
         break;
-    // ...
 }
 ```
 
@@ -153,14 +181,59 @@ switch (currentState) {
 
 ---
 
-### 7. HMAC Authentication - ADDED
+### 10. Non-Blocking Error Recovery - FIXED
+**File:** `loop.cpp`
+
+**Problem:** `STATE_ERROR` used blocking `delay(5000)`.
+
+**Fix in V1.21:**
+```cpp
+// Non-blocking with millis() timer
+static unsigned long lastRecoveryAttempt = 0;
+if (now - lastRecoveryAttempt >= RECOVERY_INTERVAL) {
+    // Attempt recovery
+    lastRecoveryAttempt = now;
+}
+```
+
+---
+
+## New Features
+
+### 11. Image Transfer Protocol - ADDED
+**Files:** `image.h`, `image.cpp`, `loop.cpp`
+
+Upload small images (64x64 pixels, up to 8KB) to the satellite via LoRa.
+
+**Protocol:**
+1. `ImageStart` - Begin transfer (filename, chunk count, size)
+2. `ImageChunk` - Send base64-encoded chunks (128 bytes each)
+3. `ImageEnd` - Finalize and verify
+
+**Features:**
+- Base64 encoding for binary data over LoRa
+- Out-of-order chunk reception supported
+- Missing chunk detection
+- 60-second timeout protection
+- Duplicate chunk handling
+
+**Commands:**
+| Command | Format |
+|---------|--------|
+| `ImageStart` | `SAT-ImageStart&/image.jpg@40:5120#HMAC` |
+| `ImageChunk` | `SAT-ImageChunk&0@[base64]#HMAC` |
+| `ImageEnd` | `SAT-ImageEnd&@#HMAC` |
+| `ImageCancel` | `SAT-ImageCancel&@#HMAC` |
+| `ImageStatus` | `SAT-ImageStatus&@#HMAC` |
+
+---
+
+### 12. HMAC Authentication - ADDED
 **Files:** `config.h`, `config.cpp`, `loop.cpp`
 
-**New security features:**
 - HMAC-SHA256 message authentication
-- 32-byte secret key (configurable)
+- 32-byte secret key (truncated to 8 bytes for LoRa bandwidth)
 - Prevents unauthorized command execution
-- Prevents message replay attacks
 
 **Command Format:**
 ```
@@ -174,13 +247,37 @@ ab4ec7121663a28e7226dbaa238da777-Status&@#a1b2c3d4e5f6g7h8
 
 ---
 
-## Lower Priority Fixes (P3)
+### 13. Adaptive Beacon System - ADDED
+**Files:** `config.h`, `config.cpp`, `loop.cpp`
 
-### 8. State Persistence - ADDED
-**Files:** `config.h`, `config.cpp`
+| Contact Status | Beacon Interval | Message |
+|----------------|-----------------|---------|
+| Before first contact | 1 minute | "Andar com fe eu vou..." |
+| After contact established | 1 hour | "Ainda bem, que agora encontrei voce" |
+| No contact for 24+ hours | 5 minutes | "Por mais distante..." |
 
-**Now persisted in EEPROM:**
-- Mission state (boot/wait/deploying/operational)
+**Beacon Message Format:**
+```
+[Message]|T+00:05:23|B:5|C:YES|V:4.1
+```
+
+---
+
+### 14. SD Card Retry Logic - ADDED
+**File:** `memor.cpp`
+
+Names are sacred - we retry to ensure they are saved:
+- 3 retry attempts for write/append operations
+- 100ms delay between retries
+- Proper error reporting after all retries fail
+
+---
+
+### 15. State Persistence - ADDED
+**Files:** `config.cpp`, `radiation.cpp`
+
+**Persisted in EEPROM with CRC32 protection:**
+- Mission state
 - Boot count
 - Antenna deployment status
 - Mission start time
@@ -189,100 +286,33 @@ ab4ec7121663a28e7226dbaa238da777-Status&@#a1b2c3d4e5f6g7h8
 
 ---
 
-### 9. SD Card Status Tracking - ADDED
-**Files:** `config.h`, `sensors.cpp`, `memor.cpp`
+## Testing Infrastructure
 
-**New in V1.21:**
-- `SDOK` flag tracks SD card availability
-- All SD operations check flag before executing
-- Proper error messages if SD unavailable
+### Unit Tests - ADDED
+**Location:** `test/`
 
----
+| Test Suite | Tests | Status |
+|------------|-------|--------|
+| Parser Fuzz Tests | 35 | All Pass |
+| TMR Unit Tests | 15 | All Pass |
 
-### 10. Telemetry Timestamps - ADDED
-**File:** `loop.cpp`
+**Parser tests cover:**
+- Valid commands
+- Missing/wrong delimiters
+- Path traversal attacks
+- Invalid HMAC
+- Unicode in data
+- Edge cases
 
-**New telemetry format:**
-```
-T+00:05:23|IMU:OK,SD:OK,RF:OK|BAT:4.12V|TEMP:25.3C|LUX:1523.4|...
-```
+**TMR tests cover:**
+- Voting logic
+- Single bit corruption recovery
+- Catastrophic failure detection
 
-**Format:** `T+HH:MM:SS` mission elapsed time prefix on all telemetry.
+### Wokwi Simulation - ADDED
+**Location:** `test/wokwi/`
 
----
-
-### 11. Memory-Safe Directory Listing - FIXED
-**File:** `memor.cpp:listDir()`
-
-**Problem in V1.2:**
-```cpp
-// V1.2 - Memory exhaustion risk
-String msgld = "";
-while (file) {
-  msgld += "...";  // Keeps growing!
-  sendMensage(msgld);
-}
-```
-
-**Fix in V1.21:**
-```cpp
-// V1.21 - Send each entry separately
-while (file) {
-  String entry = "F:" + String(file.name());
-  sendMessage(entry);  // Fixed size
-  file = root.openNextFile();
-}
-```
-
----
-
-### 12. Division-by-Zero Protection - ADDED
-**File:** `sensors.cpp:readTemp()`
-
-**New in V1.21:**
-```cpp
-double denominator = Vs - Vout;
-if (fabs(denominator) < 0.01) {
-    Serial.println("[TEMP] WARNING: Division by zero prevented!");
-    Tc = -999.0;  // Error indicator
-    return;
-}
-```
-
----
-
-### 13. Adaptive Beacon System - ADDED
-**Files:** `config.h`, `config.cpp`, `loop.cpp`
-
-**New adaptive beacon feature:**
-
-The satellite automatically adjusts beacon frequency based on ground contact status:
-
-| Status | Interval | Purpose |
-|--------|----------|---------|
-| Before first contact | 1 minute | Help ground station find satellite |
-| After contact established | 1 hour | Normal operation, save power |
-| No contact for 24+ hours | 5 minutes | Re-acquisition mode |
-
-**Easy to Configure:**
-All timing values are in `config.h`:
-
-```cpp
-// BEACON CONFIGURATION - Easy to change!
-#define BEACON_INTERVAL_NO_CONTACT   60000UL      // 1 minute
-#define BEACON_INTERVAL_NORMAL       3600000UL    // 1 hour
-#define BEACON_INTERVAL_LOST         300000UL     // 5 minutes
-#define BEACON_LOST_THRESHOLD        86400000UL   // 24 hours
-```
-
-**Beacon Message Format:**
-```
-BEACON:ORBITAL_TEMPLE|T+00:05:23|B:5|C:YES|V:4.1
-```
-- `T+HH:MM:SS` - Mission elapsed time
-- `B:N` - Boot count
-- `C:YES/NO` - Ground contact established
-- `V:X.X` - Battery voltage
+Browser-based ESP32 simulation for state machine testing without hardware.
 
 ---
 
@@ -290,22 +320,26 @@ BEACON:ORBITAL_TEMPLE|T+00:05:23|B:5|C:YES|V:4.1
 
 | File | Lines | Description |
 |------|-------|-------------|
-| `main.ino` | 116 | Entry point with ASCII art header |
-| `config.h` | 189 | Configuration, pins, constants, externs |
-| `config.cpp` | 162 | Variable definitions, HMAC, state persistence |
-| `setup.h` | 22 | Setup function declaration |
-| `setup.cpp` | 150 | Initialization with watchdog |
-| `loop.h` | 29 | Loop function declarations |
-| `loop.cpp` | 434 | State machine, commands, validation |
-| `lora.h` | 36 | LoRa function declarations |
-| `lora.cpp` | 191 | Radio communication with retry logic |
-| `sensors.h` | 34 | Sensor function declarations |
-| `sensors.cpp` | 171 | Sensor reading with validation |
-| `memor.h` | 46 | SD card function declarations |
-| `memor.cpp` | 248 | File operations with safety checks |
-| `id.h` | 15 | ID function declaration |
-| `id.cpp` | 19 | Satellite ID |
-| **TOTAL** | **2208** | |
+| `main.ino` | 112 | Entry point with ASCII art header |
+| `config.h` | 246 | Configuration, pins, constants, externs |
+| `config.cpp` | 310 | Variable definitions, HMAC, beacon system |
+| `setup.h` | 20 | Setup function declaration |
+| `setup.cpp` | 184 | Initialization with watchdog, ADC setup |
+| `loop.h` | 33 | Loop function declarations |
+| `loop.cpp` | 602 | State machine, commands, validation |
+| `lora.h` | 42 | LoRa function declarations |
+| `lora.cpp` | 249 | Radio communication with retry logic |
+| `sensors.h` | 40 | Sensor function declarations |
+| `sensors.cpp` | 213 | Sensor reading with validation |
+| `memor.h` | 65 | SD card function declarations |
+| `memor.cpp` | 424 | File operations with retry logic |
+| `radiation.h` | 156 | TMR templates, CRC functions |
+| `radiation.cpp` | 293 | SEU protection implementation |
+| `image.h` | 81 | Image transfer protocol |
+| `image.cpp` | 308 | Image transfer implementation |
+| `id.h` | 16 | ID function declaration |
+| `id.cpp` | 23 | Satellite ID |
+| **TOTAL** | **~3,400** | |
 
 ---
 
@@ -319,10 +353,11 @@ BEACON:ORBITAL_TEMPLE|T+00:05:23|B:5|C:YES|V:4.1
 - [ ] Verify HMAC authentication rejects invalid messages
 - [ ] Verify watchdog triggers on intentional hang
 - [ ] Verify state persists across reboots
+- [ ] Verify boot count starts at 1
 - [ ] Test all SD card commands
+- [ ] Test image transfer protocol
 - [ ] Test antenna deployment sequence
 - [ ] Run 7-day continuous soak test
-- [ ] Thermal testing (-40°C to +85°C)
 - [ ] Power cycle testing (random resets)
 
 ### Ground Station Updates Required:
@@ -331,6 +366,9 @@ BEACON:ORBITAL_TEMPLE|T+00:05:23|B:5|C:YES|V:4.1
 - [ ] Update command format: `SAT_ID-COMMAND&PATH@DATA#HMAC`
 - [ ] Implement HMAC calculation with shared key
 - [ ] Update telemetry parser for new format
+- [ ] Add image upload capability
+
+**Full test protocol:** [`docs/TEST_PROTOCOL.md`](docs/TEST_PROTOCOL.md)
 
 ---
 
@@ -339,25 +377,33 @@ BEACON:ORBITAL_TEMPLE|T+00:05:23|B:5|C:YES|V:4.1
 1. **Command format changed:** Must include HMAC signature
 2. **Telemetry format changed:** Now includes timestamp prefix
 3. **Function renamed:** `sendMensage()` → `sendMessage()`
+4. **New commands added:** Image transfer, GetRadStatus
 
 ---
 
 ## Known Limitations
 
-1. **No encryption:** Messages are authenticated but not encrypted (visible to anyone listening)
-2. **No replay protection:** HMAC prevents modification but not replay of valid commands
-3. **Single frequency:** No frequency hopping implemented
+1. **No encryption:** Messages are authenticated but not encrypted
+2. **No replay protection:** HMAC prevents modification but not replay
+3. **String class usage:** May cause heap fragmentation over long periods (monitor in soak test)
 
 ---
 
-## Recommendations for V1.22
+## V1.2 vs V1.21 Comparison
 
-If time permits before flight:
-
-1. Add AES-128 encryption for confidentiality
-2. Add sequence number for replay protection
-3. Implement frequency hopping or backup frequency
-4. Add health check beacon mode
+| Aspect | V1.2 | V1.21 |
+|--------|------|-------|
+| Telemetry | Broken (zeros) | Working |
+| Security | None | HMAC auth |
+| Watchdog | None | 60s timeout |
+| Blocking delays | 5-20 min unresponsive | Non-blocking |
+| State persistence | None | EEPROM + CRC |
+| Beacon | Fixed interval | Adaptive |
+| Radiation protection | None | TMR + CRC32 |
+| Image upload | None | 64x64 pixel support |
+| Boot counter | Bug (started at 2) | Fixed (starts at 1) |
+| ADC handling | Race condition | Fixed |
+| Unit tests | None | 50 tests |
 
 ---
 
@@ -365,7 +411,7 @@ If time permits before flight:
 
 **CRITICAL:** Change the HMAC key before flight!
 
-Location: `config.cpp` line 12-17
+Location: `config.cpp` line 18-23
 
 ```cpp
 const uint8_t HMAC_KEY[HMAC_KEY_LENGTH] = {

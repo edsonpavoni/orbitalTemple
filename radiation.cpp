@@ -256,14 +256,13 @@ void initRadiationProtection() {
     // Try to load saved state with CRC verification
     if (loadStateWithCRC()) {
         Serial.println("[RAD] Loaded saved state from EEPROM");
+        // Increment existing boot count
+        bootCount++;
     } else {
         Serial.println("[RAD] Starting with fresh state");
+        // First boot starts at 1
         bootCount = 1;
-        tmrWrite(tmr_bootCount, bootCount);
     }
-
-    // Increment boot count
-    bootCount++;
     tmrWrite(tmr_bootCount, bootCount);
 
     seuCorrectionsTotal = 0;

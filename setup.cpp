@@ -83,6 +83,10 @@ void setupGeneral() {
     pinMode(TL, INPUT_PULLUP);
     pinMode(ThermistorPin, INPUT);
 
+    // Set ADC resolution once globally (12-bit is ESP32 native)
+    // IMPORTANT: Never change this during operation to prevent race conditions
+    analogReadResolution(12);
+
     Serial.println("[SETUP] Pins configured");
 
     // Feed watchdog

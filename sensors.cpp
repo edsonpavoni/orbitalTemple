@@ -103,10 +103,9 @@ void readLumi() {
     // Small delay for ADC stability
     delay(10);
 
-    // Set ADC resolution to 10-bit for this sensor
-    analogReadResolution(10);
-
-    // Read raw value
+    // Read raw value (using standard 12-bit resolution)
+    // NOTE: ADC resolution is set once in setup, never changed mid-execution
+    // to prevent race conditions with interrupts
     int rawValue = analogRead(TL);
 
     // CRITICAL FIX: Assign to GLOBAL variables, not local ones!
@@ -115,10 +114,11 @@ void readLumi() {
     // got updated and StatusMsg() always showed zeros.
 
     // Voltage from sensor (assuming 5V reference through level shifter)
-    VM = rawValue * 5.0f / 1024.0f;
+    // Using 12-bit ADC (4096 levels)
+    VM = rawValue * 5.0f / 4096.0f;
 
     // Percentage of full scale
-    VP = rawValue / 1024.0f * 100.0f;
+    VP = rawValue / 4096.0f * 100.0f;
 
     // Current through sensor (10k load resistor)
     amps = VM / 10000.0f;
@@ -128,9 +128,6 @@ void readLumi() {
 
     // Convert to lux (sensor-specific calibration factor)
     lux = microamps * 2.0f;
-
-    // Reset ADC resolution to 12-bit for other sensors
-    analogReadResolution(12);
 
     // Debug output
     Serial.printf("[LUX] Raw: %d, Voltage: %.3fV, Lux: %.1f\n", rawValue, VM, lux);

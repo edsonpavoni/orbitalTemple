@@ -580,16 +580,21 @@ void mainLoop() {
             break;
 
         case STATE_ERROR:
-            // Error state - try to recover
-            Serial.println("[STATE] Error state, attempting recovery");
-            feedWatchdog();
+            // Error state - try to recover (non-blocking)
+            {
+                static unsigned long lastRecoveryAttempt = 0;
+                const unsigned long RECOVERY_INTERVAL = 5000;
 
-            if (recoverRadio()) {
-                currentState = STATE_OPERATIONAL;
-                stateStartTime = 0;
-            } else {
-                // Wait and retry
-                delay(5000);
+                if (now - lastRecoveryAttempt >= RECOVERY_INTERVAL) {
+                    Serial.println("[STATE] Error state, attempting recovery");
+                    feedWatchdog();
+
+                    if (recoverRadio()) {
+                        currentState = STATE_OPERATIONAL;
+                        stateStartTime = 0;
+                    }
+                    lastRecoveryAttempt = now;
+                }
             }
             break;
     }

@@ -35,7 +35,7 @@
 // ==================== CONFIGURATION ====================
 
 // How often to scrub TMR variables (milliseconds)
-#define SCRUB_INTERVAL  10000  // Every 10 seconds
+#define SCRUB_INTERVAL  60000  // Every 60 seconds
 
 // ==================== TMR DATA STRUCTURE ====================
 

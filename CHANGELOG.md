@@ -255,7 +255,7 @@ Example:
 ab4ec7121663a28e7226dbaa238da777-Status&@#a1b2c3d4e5f6g7h8
 ```
 
-**IMPORTANT:** Change `HMAC_KEY` in `config.cpp` before flight!
+**IMPORTANT:** Create `secrets.h` from `secrets.h.example` with your unique HMAC key before flight!
 
 ---
 
@@ -334,7 +334,8 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 |------|-------|-------------|
 | `main.ino` | 112 | Entry point with ASCII art header |
 | `config.h` | 246 | Configuration, pins, constants, externs |
-| `config.cpp` | 317 | Variable definitions, HMAC, beacon system |
+| `config.cpp` | 317 | Variable definitions, beacon system |
+| `secrets.h` | 25 | HMAC key (gitignored) |
 | `setup.h` | 20 | Setup function declaration |
 | `setup.cpp` | 188 | Initialization with watchdog, ADC setup |
 | `loop.h` | 33 | Loop function declarations |
@@ -425,15 +426,18 @@ Browser-based ESP32 simulation for state machine testing without hardware.
 
 **CRITICAL:** Change the HMAC key before flight!
 
-Location: `config.cpp` line 18-23
+1. Copy `secrets.h.example` to `secrets.h`
+2. Generate a new key: `openssl rand -hex 32`
+3. Update the `HMAC_KEY` array in `secrets.h`
 
 ```cpp
-const uint8_t HMAC_KEY[HMAC_KEY_LENGTH] = {
+const uint8_t HMAC_KEY[32] = {
     // Replace with your own 32-byte key!
-    // Generate with: openssl rand -hex 32
-    0x4f, 0x72, 0x62, 0x69, ...
+    0xa1, 0xb2, 0xc3, 0xd4, ...
 };
 ```
+
+**Note:** `secrets.h` is gitignored to keep your key private.
 
 ---
 

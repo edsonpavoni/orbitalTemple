@@ -122,6 +122,7 @@ The "InterPlanetary" File System — now literally interplanetary.
 ```
 ├── main.ino        # Where it begins
 ├── config.h/cpp    # The constants of this universe
+├── secrets.h       # The key to the temple (gitignored)
 ├── setup.h/cpp     # The awakening
 ├── loop.h/cpp      # The eternal cycle
 ├── lora.h/cpp      # The voice
@@ -172,8 +173,8 @@ pio run
 ```bash
 openssl rand -hex 32
 ```
-Update `HMAC_KEY` in `config.cpp` with the generated key.<br>
-This is your satellite's password. Keep it secret.
+Copy `secrets.h.example` to `secrets.h` and update `HMAC_KEY` with the generated key.<br>
+This file is gitignored — your satellite's password stays secret.
 
 ### 2. Hardware Tests
 - [ ] Power on → boot message appears within 3 seconds
@@ -184,6 +185,8 @@ This is your satellite's password. Keep it secret.
 - [ ] SD card writes and reads correctly
 - [ ] Wrong HMAC is rejected
 - [ ] Path traversal is blocked
+- [ ] artworkAscension stores to SD card
+- [ ] artworkList retrieves stored artworks
 
 ### 3. State Machine Tests
 - [ ] Boot count increments on each power cycle

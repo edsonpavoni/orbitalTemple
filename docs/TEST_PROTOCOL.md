@@ -1,7 +1,7 @@
 # Orbital Temple - Hardware Test Protocol
 
 **Version:** 1.21
-**Total time:** ~4 hours + 7-day soak test
+**Total time:** ~4.5 hours + 7-day soak test
 
 ---
 
@@ -15,7 +15,7 @@ Make sure you have:
 - Multimeter (optional)
 
 And confirm:
-- You changed the HMAC key in `config.cpp` (not the default one)
+- You created `secrets.h` from `secrets.h.example` with your unique HMAC key
 - Code compiled without errors
 
 ---
@@ -172,7 +172,37 @@ OK:DELETED
 
 ---
 
-## Step 9: Security - Wrong HMAC
+## Step 9: Artwork Ascension
+
+Send an artworkAscension command:
+
+```
+SAT001-artworkAscension&@QmTestCID12345678901234567890|Test Artist|Test Artwork#[HMAC]
+```
+
+**What you should see:**
+
+```
+OK:ART_STORED|QmTestCID12345678901234567890
+```
+
+Then verify with artworkList:
+
+```
+SAT001-artworkList&@#[HMAC]
+```
+
+**What you should see:**
+
+```
+ART:LIST_START
+ART:1|T+00:XX:XX|QmTestCID12345678901234567890|Test Artist|Test Artwork
+ART:LIST_END|COUNT:1
+```
+
+---
+
+## Step 10: Security - Wrong HMAC
 
 Send a command with an incorrect signature:
 
@@ -190,7 +220,7 @@ The satellite should reject it.
 
 ---
 
-## Step 10: Security - Path Traversal
+## Step 11: Security - Path Traversal
 
 Send a malicious path:
 
@@ -208,7 +238,7 @@ The attack is blocked.
 
 ---
 
-## Step 11: State Persistence - Boot Count
+## Step 12: State Persistence - Boot Count
 
 Power cycle the satellite 3 times (unplug, wait 5 seconds, plug back in).
 
@@ -223,7 +253,7 @@ This confirms EEPROM is saving state correctly.
 
 ---
 
-## Step 12: Antenna Deployment Simulation
+## Step 13: Antenna Deployment Simulation
 
 For this test, you need to simulate the antenna deployment:
 
@@ -243,7 +273,7 @@ The burn wire (GPIO 27) should turn OFF immediately when the switch is released.
 
 ---
 
-## Step 13: State Persistence - Antenna Memory
+## Step 14: State Persistence - Antenna Memory
 
 After the antenna has been marked as deployed, power cycle the satellite.
 
@@ -259,7 +289,7 @@ This is critical - we don't want to re-heat the burn wire in space.
 
 ---
 
-## Step 14: Beacon Timing - Before Contact
+## Step 15: Beacon Timing - Before Contact
 
 Reset the EEPROM (or use a fresh chip) so the satellite thinks it has never contacted ground.
 
@@ -272,7 +302,7 @@ Andar com fe eu vou, que a fe nao costuma faia.
 
 ---
 
-## Step 15: Beacon Timing - After Contact
+## Step 16: Beacon Timing - After Contact
 
 Send any valid command (like Ping).
 
@@ -285,7 +315,7 @@ Ainda bem, que agora encontrei voce
 
 ---
 
-## Step 16: Radiation Protection Status
+## Step 17: Radiation Protection Status
 
 Send a GetRadStatus command:
 
@@ -303,7 +333,7 @@ The SEU count should be 0 (no bit flips detected). The scrub should happen every
 
 ---
 
-## Step 17: Watchdog Test
+## Step 18: Watchdog Test
 
 This is optional but recommended. Temporarily modify the code to create an infinite loop:
 
@@ -321,7 +351,7 @@ Don't forget to remove the infinite loop after testing!
 
 ---
 
-## Step 18: Seven-Day Soak Test
+## Step 19: Seven-Day Soak Test
 
 This is the most important test. Leave the satellite running for 7 days with no manual intervention.
 
@@ -352,7 +382,7 @@ Day 7: Send Status - all systems OK?
 Before declaring the satellite ready for flight:
 
 ```
-[ ] All steps 1-18 passed
+[ ] All steps 1-19 passed
 [ ] 7-day soak test: zero crashes
 [ ] HMAC key is unique (not the default)
 [ ] SD card is empty (no test files left)

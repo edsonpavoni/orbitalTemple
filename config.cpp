@@ -259,12 +259,29 @@ void registerGroundContact() {
 
 // Send a beacon message
 void sendBeacon() {
-    // Build beacon message with status info
-    String beacon = BEACON_MESSAGE;
+    unsigned long now = millis();
+
+    // Choose beacon message based on contact status
+    String beacon;
+    if (!groundContactEstablished) {
+        // Searching for Earth
+        beacon = BEACON_MSG_SEARCHING;
+    } else {
+        // Check if lost
+        unsigned long timeSinceContact = now - lastGroundContact;
+        if (timeSinceContact > BEACON_LOST_THRESHOLD) {
+            // Lost contact
+            beacon = BEACON_MSG_LOST;
+        } else {
+            // Connected
+            beacon = BEACON_MSG_CONNECTED;
+        }
+    }
+
     beacon += "|";
 
     // Add mission elapsed time
-    unsigned long elapsed = millis() - missionStartTime;
+    unsigned long elapsed = now - missionStartTime;
     unsigned long hours = elapsed / 3600000UL;
     unsigned long minutes = (elapsed % 3600000UL) / 60000UL;
     unsigned long seconds = (elapsed % 60000UL) / 1000UL;

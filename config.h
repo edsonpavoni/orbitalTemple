@@ -142,8 +142,10 @@ extern const uint8_t HMAC_KEY[HMAC_KEY_LENGTH];
 #define BEACON_INTERVAL_LOST         300000UL     // 5 minutes (300,000 ms) - no contact for 24h
 #define BEACON_LOST_THRESHOLD        86400000UL   // 24 hours (86,400,000 ms) - time to consider "lost"
 
-// Beacon message content
-#define BEACON_MESSAGE "BEACON:ORBITAL_TEMPLE"
+// Beacon message content - Brazilian poetry for each state
+#define BEACON_MSG_SEARCHING  "Andar com fe eu vou, que a fe nao costuma faia."
+#define BEACON_MSG_CONNECTED  "Ainda bem, que agora encontrei voce"
+#define BEACON_MSG_LOST       "Por mais distante, o errante navegante, quem jamais te esqueceria?"
 
 // ==================== EEPROM CONFIGURATION ====================
 

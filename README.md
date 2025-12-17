@@ -68,9 +68,9 @@ for the long silence between passes.
 
 | Condition | Beacon Interval |
 |-----------|-----------------|
-| Searching for Earth | Every **1 minute** — *"I am here"* |
-| Contact established | Every **1 hour** — *"I am still here"* |
-| Lost for 24 hours | Every **5 minutes** — *"Find me"* |
+| Searching for Earth | Every **1 minute** — *"Andar com fé eu vou, que a fé não costuma faiá."* |
+| Contact established | Every **1 hour** — *"Ainda bem, que agora encontrei você"* |
+| Lost for 24 hours | Every **5 minutes** — *"Por mais distante, o errante navegante, quem jamais te esqueceria?"* |
 
 When the ground station hears, it responds. When the satellite hears back,
 it knows it is not alone.

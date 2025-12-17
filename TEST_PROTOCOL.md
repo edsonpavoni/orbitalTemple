@@ -1,219 +1,404 @@
 # Orbital Temple - Hardware Test Protocol
 
 **Version:** 1.21
-**Duration:** ~4 hours + 7-day soak test
-**Required:** Satellite, Ground Station, Multimeter, Thermal Chamber (optional)
+**Total time:** ~4 hours + 7-day soak test
 
 ---
 
 ## Before You Start
 
+Make sure you have:
+- The satellite with battery charged
+- Ground station computer with radio
+- USB cable for serial monitoring
+- Fresh SD card (FAT32 formatted)
+- Multimeter (optional)
+
+And confirm:
+- You changed the HMAC key in `config.cpp` (not the default one)
+- Code compiled without errors
+
+---
+
+## Step 1: First Power On
+
+Plug the USB cable into the satellite and open the Serial Monitor at 115200 baud.
+
+**What you should see:**
+
 ```
-[ ] HMAC key changed in config.cpp (not default)
-[ ] Code compiled without errors
-[ ] Fresh SD card formatted (FAT32)
-[ ] Battery fully charged
-[ ] Ground station software ready
+=============================================
+  ORBITAL TEMPLE SATELLITE
+  Firmware Version: 1.21
+  A memorial in outer space
+=============================================
+
+[SETUP] Initializing watchdog timer...
+[SETUP] Watchdog configured: 60 second timeout
+[SETUP] Initializing EEPROM...
+[SETUP] Pins configured
+[SETUP] Initializing LoRa radio...
+[SETUP] Radio initialized successfully
+
+=============================================
+  SETUP COMPLETE - STATUS SUMMARY
+=============================================
+  IMU:      OK
+  SD Card:  OK
+  Radio:    OK
+  Antenna:  PENDING
+  Boot #:   1
+=============================================
+```
+
+**If it hangs or shows errors, stop here and fix before continuing.**
+
+---
+
+## Step 2: Test Without USB
+
+Unplug the USB cable. Power the satellite from battery only. Wait 10 seconds, then plug USB back in.
+
+**What you should see:**
+
+The satellite should have booted normally. The boot count should now be 2.
+
+This confirms there's no `while(!Serial)` blocking issue.
+
+---
+
+## Step 3: Radio Transmit
+
+Wait for the satellite to send a beacon (within 1 minute if no previous contact).
+
+**What you should see on the ground station:**
+
+```
+Andar com fe eu vou, que a fe nao costuma faia.|T+00:01:00|B:2|C:NO|V:3.7
+```
+
+This confirms the radio is transmitting.
+
+---
+
+## Step 4: Radio Receive
+
+From the ground station, send a Ping command:
+
+```
+SAT001-Ping&@#[your HMAC signature]
+```
+
+**What you should see:**
+
+The satellite responds with:
+```
+PONG|T+00:02:15
+```
+
+This confirms the radio is receiving and processing commands.
+
+---
+
+## Step 5: Sensor Readings
+
+Send a Status command:
+
+```
+SAT001-Status&@#[HMAC]
+```
+
+**What you should see:**
+
+```
+T+00:03:00|IMU:OK SD:OK RF:OK|BAT:3.85V|TEMP:24.5C|LUX:150.0|GYR:...|ACC:...|MAG:...|SD:87%|SEU:0
+```
+
+Check that:
+- Battery voltage is reasonable (3.0V - 4.2V)
+- Temperature is reasonable (not 0.00 or -999)
+- Lux changes when you cover the sensor
+- Gyro/Accel values change when you move the satellite
+
+---
+
+## Step 6: SD Card Write
+
+Send a WriteFile command:
+
+```
+SAT001-WriteFile&/test.txt@Hello from Earth#[HMAC]
+```
+
+**What you should see:**
+
+```
+OK:WRITTEN:16B
 ```
 
 ---
 
-## Phase 1: Power-On Sanity (10 min)
+## Step 7: SD Card Read
 
-Connect USB, open Serial Monitor (115200 baud).
+Send a ReadFile command:
 
-| # | Test | Expected | ✓ |
-|---|------|----------|---|
-| 1.1 | Power on | Boot message appears within 3s | |
-| 1.2 | No `while(!Serial)` hang | Boots without USB connected | |
-| 1.3 | Watchdog init | `[SETUP] Watchdog configured: 60 second timeout` | |
-| 1.4 | Status summary | Shows IMU, SD, Radio status | |
+```
+SAT001-ReadFile&/test.txt@#[HMAC]
+```
 
-**If any fail → STOP. Fix before continuing.**
+**What you should see:**
 
----
-
-## Phase 2: Subsystem Tests (1 hour)
-
-### 2A. Radio (LoRa)
-
-| # | Test | Command | Expected | ✓ |
-|---|------|---------|----------|---|
-| 2A.1 | TX works | Wait for beacon | Ground station receives beacon | |
-| 2A.2 | RX works | Send `Ping` | Satellite responds `PONG` | |
-| 2A.3 | Sync word | Check frequency | 401.5 MHz RX, 468.5 MHz TX | |
-
-### 2B. SD Card
-
-| # | Test | Command | Expected | ✓ |
-|---|------|---------|----------|---|
-| 2B.1 | Write | `WriteFile&/test.txt@hello` | `OK:WRITTEN:5B` | |
-| 2B.2 | Read | `ReadFile&/test.txt@` | Returns `hello` | |
-| 2B.3 | List | `ListDir&/@` | Shows files | |
-| 2B.4 | Capacity | `Status` | `SD:XX%` in telemetry | |
-| 2B.5 | Delete | `DeleteFile&/test.txt@` | `OK:DELETED` | |
-
-### 2C. Sensors
-
-| # | Test | Command | Expected | ✓ |
-|---|------|---------|----------|---|
-| 2C.1 | Battery | `Status` | `BAT:X.XXV` (not 0.00V) | |
-| 2C.2 | Temperature | `Status` | `TEMP:XX.XC` (reasonable) | |
-| 2C.3 | Luminosity | Cover/uncover sensor | `LUX` value changes | |
-| 2C.4 | IMU | Move satellite | Gyro/Accel values change | |
-
-### 2D. Security
-
-| # | Test | Command | Expected | ✓ |
-|---|------|---------|----------|---|
-| 2D.1 | Valid HMAC | Correct signature | Command executes | |
-| 2D.2 | Invalid HMAC | Wrong signature | `ERR:AUTH_FAILED` | |
-| 2D.3 | Wrong sat ID | Different ID | Ignored (no response) | |
-| 2D.4 | Path traversal | `ReadFile&/../etc@` | `ERR:PATH_TRAVERSAL_BLOCKED` | |
-| 2D.5 | Malformed | Missing delimiters | Rejected silently | |
+```
+FILE:/test.txt,16
+Hello from Earth
+END:FILE
+```
 
 ---
 
-## Phase 3: State Machine (30 min)
+## Step 8: SD Card Delete
 
-### 3A. Fresh Boot Sequence
+Send a DeleteFile command:
 
-1. Erase EEPROM (or use fresh chip)
-2. Power on
-3. Observe state transitions:
+```
+SAT001-DeleteFile&/test.txt@#[HMAC]
+```
 
-| # | State | Timing | Indicator | ✓ |
-|---|-------|--------|-----------|---|
-| 3A.1 | BOOT | Immediate | Serial: `[STATE] Boot complete` | |
-| 3A.2 | WAIT_DEPLOY | 0-5 min | Beacons every 1 min | |
-| 3A.3 | DEPLOYING | After 5 min | Burn wire activates (GPIO 27 HIGH) | |
-| 3A.4 | OPERATIONAL | After deploy | Beacons every 1 hour | |
+**What you should see:**
 
-### 3B. Antenna Deployment
-
-| # | Test | Action | Expected | ✓ |
-|---|------|--------|----------|---|
-| 3B.1 | Switch pressed | Hold switch | `AntSwitch: PRESSED` in setup | |
-| 3B.2 | Burn wire | Enter DEPLOYING | GPIO 27 goes HIGH for 90s | |
-| 3B.3 | Switch release | Release switch | `OK:ANTENNA_DEPLOYED` message | |
-| 3B.4 | Burn wire off | After release | GPIO 27 goes LOW immediately | |
-
-### 3C. State Persistence
-
-| # | Test | Action | Expected | ✓ |
-|---|------|--------|----------|---|
-| 3C.1 | Boot count | Power cycle 3x | Boot count increments each time | |
-| 3C.2 | Antenna memory | Deploy, then reboot | Skips to OPERATIONAL | |
-| 3C.3 | No re-deploy | Multiple reboots | Never re-heats burn wire | |
+```
+OK:DELETED
+```
 
 ---
 
-## Phase 4: Edge Cases (30 min)
+## Step 9: Security - Wrong HMAC
 
-### 4A. Watchdog
+Send a command with an incorrect signature:
 
-| # | Test | Action | Expected | ✓ |
-|---|------|--------|----------|---|
-| 4A.1 | Normal operation | Run for 5 min | No unexpected resets | |
-| 4A.2 | Forced hang | (Code mod: infinite loop) | Resets after 60s | |
+```
+SAT001-Ping&@#wrongsignature123
+```
 
-### 4B. Radiation Protection (Simulated)
+**What you should see:**
 
-| # | Test | Action | Expected | ✓ |
-|---|------|--------|----------|---|
-| 4B.1 | TMR scrub | Wait 60s | `[RAD]` messages if corrections | |
-| 4B.2 | SEU counter | `GetRadStatus` | Returns `RAD:SEU_TOTAL:0` | |
+```
+ERR:AUTH_FAILED
+```
 
-### 4C. Error Recovery
-
-| # | Test | Action | Expected | ✓ |
-|---|------|--------|----------|---|
-| 4C.1 | SD removed | Remove SD during operation | `ERR:SD_NOT_AVAILABLE` | |
-| 4C.2 | SD reinsert | Reboot with SD | SD works again | |
-| 4C.3 | Radio recovery | (If radio fails) | Auto-retry, then restart | |
+The satellite should reject it.
 
 ---
 
-## Phase 5: Beacon Timing (1 hour)
+## Step 10: Security - Path Traversal
 
-| # | Condition | Expected Interval | ✓ |
-|---|-----------|-------------------|---|
-| 5.1 | Before first contact | 1 minute | |
-| 5.2 | After receiving command | 1 hour | |
-| 5.3 | No contact for 24h | 5 minutes | |
+Send a malicious path:
 
-**Test 5.3:** Set `BEACON_LOST_THRESHOLD` to 5 minutes temporarily, wait for mode change.
+```
+SAT001-ReadFile&/../../../etc/passwd@#[HMAC]
+```
+
+**What you should see:**
+
+```
+ERR:PATH_TRAVERSAL_BLOCKED
+```
+
+The attack is blocked.
 
 ---
 
-## Phase 6: Soak Test (7 days)
+## Step 11: State Persistence - Boot Count
+
+Power cycle the satellite 3 times (unplug, wait 5 seconds, plug back in).
+
+**What you should see:**
+
+Each time you power on, the boot count should increment:
+- Boot #3
+- Boot #4
+- Boot #5
+
+This confirms EEPROM is saving state correctly.
+
+---
+
+## Step 12: Antenna Deployment Simulation
+
+For this test, you need to simulate the antenna deployment:
+
+1. Hold the antenna switch pressed (GPIO 33 should read HIGH)
+2. Let the satellite enter DEPLOYING state (after 5 minutes, or use `ForceOperational` to skip)
+3. Observe GPIO 27 going HIGH (burn wire activation)
+4. Release the antenna switch
+
+**What you should see:**
+
+```
+[ANT] Switch released - antenna deployed!
+OK:ANTENNA_DEPLOYED|T+00:05:30
+```
+
+The burn wire (GPIO 27) should turn OFF immediately when the switch is released.
+
+---
+
+## Step 13: State Persistence - Antenna Memory
+
+After the antenna has been marked as deployed, power cycle the satellite.
+
+**What you should see:**
+
+```
+[STATE] Resuming operational state
+```
+
+The satellite should skip directly to OPERATIONAL mode and **never** try to deploy the antenna again.
+
+This is critical - we don't want to re-heat the burn wire in space.
+
+---
+
+## Step 14: Beacon Timing - Before Contact
+
+Reset the EEPROM (or use a fresh chip) so the satellite thinks it has never contacted ground.
+
+**What you should see:**
+
+Beacons every **1 minute** with the message:
+```
+Andar com fe eu vou, que a fe nao costuma faia.
+```
+
+---
+
+## Step 15: Beacon Timing - After Contact
+
+Send any valid command (like Ping).
+
+**What you should see:**
+
+The beacon interval changes to **1 hour**. The message changes to:
+```
+Ainda bem, que agora encontrei voce
+```
+
+---
+
+## Step 16: Radiation Protection Status
+
+Send a GetRadStatus command:
+
+```
+SAT001-GetRadStatus&@#[HMAC]
+```
+
+**What you should see:**
+
+```
+RAD:SEU_TOTAL:0|LAST_SCRUB:45s_ago
+```
+
+The SEU count should be 0 (no bit flips detected). The scrub should happen every 60 seconds.
+
+---
+
+## Step 17: Watchdog Test
+
+This is optional but recommended. Temporarily modify the code to create an infinite loop:
+
+```cpp
+while(true) { } // Intentional hang
+```
+
+Upload and run.
+
+**What you should see:**
+
+After 60 seconds, the satellite should automatically restart. You'll see the boot message again.
+
+Don't forget to remove the infinite loop after testing!
+
+---
+
+## Step 18: Seven-Day Soak Test
+
+This is the most important test. Leave the satellite running for 7 days with no manual intervention.
 
 **Setup:**
-- Power via solar panel simulator OR battery + charger
-- Ground station logging all beacons
-- No manual intervention
+- Power from battery + charger (simulating solar panel)
+- Ground station logging all received beacons
+- No touching, no commands, just observe
 
-**Monitor:**
+**Check every day:**
 
-| Day | Check | Expected | ✓ |
-|-----|-------|----------|---|
-| 1 | Beacons received | Regular interval | |
-| 2 | Boot count | Still 1 (no crashes) | |
-| 3 | Memory | No `CRITICAL` or `ERROR` logs | |
-| 4 | SD free space | Not filling unexpectedly | |
-| 5 | Telemetry values | Sensors still reading | |
-| 6 | Command response | `Ping` → `PONG` | |
-| 7 | Final status | All systems nominal | |
+Day 1: Are beacons being received regularly?
+Day 2: Is boot count still 1? (no crashes)
+Day 3: Any ERROR messages in the log?
+Day 4: Is SD card filling up unexpectedly?
+Day 5: Are sensor values still reasonable?
+Day 6: Send a Ping - does it respond?
+Day 7: Send Status - all systems OK?
 
-**PASS criteria:** Zero unexpected reboots, zero errors, all commands work.
-
----
-
-## Phase 7: Thermal (Optional but Recommended)
-
-| # | Temp | Duration | Check | ✓ |
-|---|------|----------|-------|---|
-| 7.1 | +60°C | 2 hours | Responds to Ping | |
-| 7.2 | -20°C | 2 hours | Responds to Ping | |
-| 7.3 | Cycle | 5 cycles | No damage, boots normally | |
+**Pass criteria:**
+- Zero unexpected reboots (boot count stays at 1)
+- Zero error messages
+- All commands still work on day 7
 
 ---
 
-## Final Sign-Off
+## Step 19: Thermal Test (Optional)
+
+If you have access to a thermal chamber:
+
+1. Heat to +60°C, wait 2 hours, send Ping
+2. Cool to -20°C, wait 2 hours, send Ping
+3. Cycle between hot and cold 5 times
+
+**What you should see:**
+
+The satellite responds to Ping at all temperatures.
+
+---
+
+## Final Checklist
+
+Before declaring the satellite ready for flight:
 
 ```
-Date: _______________
-
-[ ] All Phase 1-4 tests passed
-[ ] 7-day soak test passed (zero crashes)
-[ ] Thermal test passed (if done)
-[ ] HMAC key is UNIQUE (not default)
-[ ] SD card contains no test files
-[ ] Boot count reset to 0
+[ ] All steps 1-18 passed
+[ ] 7-day soak test: zero crashes
+[ ] HMAC key is unique (not the default)
+[ ] SD card is empty (no test files left)
+[ ] Boot count reset to 0 for flight
 [ ] Battery fully charged
 
 Tested by: _______________________
+Date: _______________
 
-Ready for flight: [ ] YES  [ ] NO
+READY FOR FLIGHT: [ ] YES
 ```
 
 ---
 
-## Quick Reference: Test Commands
+## Quick Command Reference
 
+All commands follow this format:
 ```
-Format: SAT_ID-COMMAND&PATH@DATA#HMAC
+SAT001-COMMAND&PATH@DATA#HMAC
+```
 
-Ping          SAT001-Ping&@#[HMAC]
-Status        SAT001-Status&@#[HMAC]
-WriteFile     SAT001-WriteFile&/names/test.txt@Maria Silva#[HMAC]
-ReadFile      SAT001-ReadFile&/names/test.txt@#[HMAC]
-ListDir       SAT001-ListDir&/@#[HMAC]
-DeleteFile    SAT001-DeleteFile&/names/test.txt@#[HMAC]
-GetState      SAT001-GetState&@#[HMAC]
-GetRadStatus  SAT001-GetRadStatus&@#[HMAC]
-MCURestart    SAT001-MCURestart&@#[HMAC]
-```
+| Command | Example |
+|---------|---------|
+| Ping | `SAT001-Ping&@#[HMAC]` |
+| Status | `SAT001-Status&@#[HMAC]` |
+| Write a name | `SAT001-WriteFile&/names/maria.txt@Maria Silva#[HMAC]` |
+| Read a file | `SAT001-ReadFile&/names/maria.txt@#[HMAC]` |
+| List files | `SAT001-ListDir&/names@#[HMAC]` |
+| Delete file | `SAT001-DeleteFile&/names/maria.txt@#[HMAC]` |
+| Get state | `SAT001-GetState&@#[HMAC]` |
+| Radiation status | `SAT001-GetRadStatus&@#[HMAC]` |
+| Restart | `SAT001-MCURestart&@#[HMAC]` |
 
 ---
 

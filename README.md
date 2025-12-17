@@ -1,19 +1,22 @@
 # Orbital Temple
 
-### A sanctuary in the sky. A temple made of light and silence.
+Orbital Temple is an artwork and a satellite, aiming to be a radical inclusive temple, in a place where no wall can reach.
 
-This is the firmware that keeps a promise — to carry names beyond the clouds,
-to hold them in orbit, where grief becomes constellation.
+This is the firmware that keeps the promise to carry names beyond the sky, to hold them in orbit, to question the symbolic colonization of heaven as paradise; the origin of the rules that open or close its gateways; and the influence those beliefs have on the decisions we make every day.
 
 ---
 
 ## What is this?
 
-A 5-centimeter satellite. 250 grams of aluminum, gold, and memory.
+It's a PocketQube satellite, with 5 × 5 × 5 cm before launch, and 5 × 5 × 30 cm after deploying its antennas in space. Weighs 250 grams of aluminum, gold, and memory.
 
-Through a [website](https://orbitaltemple.art), anyone can send the name of someone
-who has passed away — to heaven. The satellite receives these names via radio,
-stores them in its heart, and confirms: *they are remembered*.
+### How it works
+
+The user thinks of a life that should be remembered. They type the name in [this website](https://orbitaltemple.art).
+
+And we will hold it. When the Orbital Temple aligns with our antennas on Earth, the name will rise. The satellite will store it in its memory and send a message to you: *"Today, at this hour, the name you sent ascended, and there it remains."*
+
+### This repository
 
 This repository contains the code that makes that possible.
 

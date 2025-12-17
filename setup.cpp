@@ -161,7 +161,7 @@ void setupGeneral() {
         char logMsg[100];
         snprintf(logMsg, sizeof(logMsg),
                  "BOOT #%lu - IMU:%s SD:%s RF:%s ANT:%s",
-                 bootCount,
+                 (unsigned long)bootCount,
                  IMUOK ? "OK" : "FAIL",
                  SDOK ? "OK" : "FAIL",
                  RFOK ? "OK" : "FAIL",

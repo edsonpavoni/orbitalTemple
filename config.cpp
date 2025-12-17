@@ -119,7 +119,7 @@ void loadState() {
     }
 
     // Load saved state
-    uint8_t savedState = EEPROM.read(EEPROM_ADDR_STATE);
+    // Note: savedState from EEPROM not used - we determine state from antennaDeployed
     EEPROM.get(EEPROM_ADDR_BOOTCOUNT, bootCount);
     antennaDeployed = (EEPROM.read(EEPROM_ADDR_DEPLOY_OK) == 1);
     EEPROM.get(EEPROM_ADDR_MISSION_START, missionStartTime);

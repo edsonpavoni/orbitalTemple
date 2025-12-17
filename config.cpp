@@ -12,16 +12,7 @@
 #include "config.h"
 #include "radiation.h"
 #include "accel.h"
-
-// ==================== HMAC KEY ====================
-// IMPORTANT: Generate a unique 32-byte key before flight!
-// You can generate with: openssl rand -hex 32
-const uint8_t HMAC_KEY[HMAC_KEY_LENGTH] = {
-    0x4f, 0x72, 0x62, 0x69, 0x74, 0x61, 0x6c, 0x54,  // "OrbitalT"
-    0x65, 0x6d, 0x70, 0x6c, 0x65, 0x53, 0x65, 0x63,  // "empleSec"
-    0x72, 0x65, 0x74, 0x4b, 0x65, 0x79, 0x32, 0x30,  // "retKey20"
-    0x32, 0x35, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5e   // "25!@#$%^"
-};
+#include "secrets.h"  // HMAC key - this file should NOT be committed to git
 
 // ==================== RADIO ====================
 SX1262 radio = new Module(CS_RF, DIO1_RF, RST_RF);

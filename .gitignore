@@ -1,1 +1,4 @@
 .DS_Store
+
+# Secret keys - NEVER commit these
+secrets.h

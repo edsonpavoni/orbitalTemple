@@ -306,21 +306,29 @@ void processMessage(const String& message) {
         // Start image transfer
         // Path: filename, Data: totalChunks:expectedSize
         Serial.println("[CMD] Image start");
-        int colonIdx = data.indexOf(':');
-        if (colonIdx == -1) {
-            sendMessage("ERR:IMG_INVALID_PARAMS");
+        if (path.length() == 0) {
+            sendMessage("ERR:IMG_NO_FILENAME");
         } else {
-            uint16_t totalChunks = data.substring(0, colonIdx).toInt();
-            uint16_t expectedSize = data.substring(colonIdx + 1).toInt();
-            imageStart(pathCStr, totalChunks, expectedSize);
+            int colonIdx = data.indexOf(':');
+            if (colonIdx == -1) {
+                sendMessage("ERR:IMG_INVALID_PARAMS");
+            } else {
+                uint16_t totalChunks = data.substring(0, colonIdx).toInt();
+                uint16_t expectedSize = data.substring(colonIdx + 1).toInt();
+                imageStart(pathCStr, totalChunks, expectedSize);
+            }
         }
     }
     else if (command.equals("ImageChunk")) {
         // Receive image chunk
         // Path: chunk number, Data: base64 encoded data
         Serial.println("[CMD] Image chunk");
-        uint16_t chunkNum = path.toInt();
-        imageChunk(chunkNum, dataCStr);
+        if (data.length() == 0) {
+            sendMessage("ERR:IMG_EMPTY_CHUNK");
+        } else {
+            uint16_t chunkNum = path.toInt();
+            imageChunk(chunkNum, dataCStr);
+        }
     }
     else if (command.equals("ImageEnd")) {
         // Finalize image transfer

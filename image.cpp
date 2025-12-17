@@ -28,6 +28,9 @@ static const uint8_t base64_table[128] = {
 
 // Base64 decode
 int base64Decode(const char* input, uint8_t* output, int maxOutputLen) {
+    if (input == NULL || output == NULL || maxOutputLen <= 0) {
+        return 0;
+    }
     int inputLen = strlen(input);
     int outputLen = 0;
     uint32_t buffer = 0;

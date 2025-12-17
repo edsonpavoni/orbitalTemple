@@ -77,8 +77,13 @@ T tmrRead(TMR<T>& tmr) {
     if (tmr.copy1 == tmr.copy3) return tmr.copy1;
     if (tmr.copy2 == tmr.copy3) return tmr.copy2;
 
-    // All three different - catastrophic, return copy1 and log
-    Serial.println("[RAD] WARNING: TMR all copies differ!");
+    // All three different - CATASTROPHIC FAILURE
+    // Memory is severely corrupted, restart is the only safe option
+    Serial.println("[RAD] CRITICAL: TMR all copies differ! Restarting...");
+    delay(100);  // Allow serial to flush
+    ESP.restart();
+
+    // Never reached, but needed for compiler
     return tmr.copy1;
 }
 

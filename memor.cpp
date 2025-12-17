@@ -182,7 +182,11 @@ void readFile(fs::FS &fs, const char *path) {
     Serial.printf("[SD] File read complete, %d bytes in %d chunks\n", totalSent, chunkNum);
 }
 
-// ==================== WRITE FILE ====================
+// ==================== WRITE FILE (WITH RETRY) ====================
+// Names are sacred - we retry to ensure they are saved
+#define SD_WRITE_RETRIES 3
+#define SD_RETRY_DELAY   100
+
 void writeFile(fs::FS &fs, const char *path, const char *message) {
     if (!isSDAvailable()) return;
 
@@ -198,26 +202,42 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
 
     Serial.printf("[SD] Writing file: %s\n", path);
 
-    File file = fs.open(path, FILE_WRITE);
-    if (!file) {
-        Serial.println("[SD] Failed to open file for writing");
-        sendMessage("ERR:OPEN_FILE_FAILED");
-        return;
+    // Retry loop - names are important, we don't give up easily
+    for (int attempt = 1; attempt <= SD_WRITE_RETRIES; attempt++) {
+        feedWatchdog();
+
+        File file = fs.open(path, FILE_WRITE);
+        if (!file) {
+            Serial.printf("[SD] Attempt %d: Failed to open file\n", attempt);
+            if (attempt < SD_WRITE_RETRIES) {
+                delay(SD_RETRY_DELAY);
+                continue;
+            }
+            sendMessage("ERR:OPEN_FILE_FAILED");
+            return;
+        }
+
+        size_t bytesWritten = file.print(message);
+        file.close();
+
+        if (bytesWritten > 0) {
+            Serial.printf("[SD] File written, %d bytes (attempt %d)\n", bytesWritten, attempt);
+            sendMessage("OK:WRITTEN:" + String(bytesWritten) + "B");
+            return;  // Success!
+        }
+
+        Serial.printf("[SD] Attempt %d: Write returned 0 bytes\n", attempt);
+        if (attempt < SD_WRITE_RETRIES) {
+            delay(SD_RETRY_DELAY);
+        }
     }
 
-    size_t bytesWritten = file.print(message);
-    file.close();
-
-    if (bytesWritten > 0) {
-        Serial.printf("[SD] File written, %d bytes\n", bytesWritten);
-        sendMessage("OK:WRITTEN:" + String(bytesWritten) + "B");
-    } else {
-        Serial.println("[SD] Write failed");
-        sendMessage("ERR:WRITE_FAILED");
-    }
+    // All retries failed
+    Serial.println("[SD] Write failed after all retries");
+    sendMessage("ERR:WRITE_FAILED");
 }
 
-// ==================== APPEND FILE ====================
+// ==================== APPEND FILE (WITH RETRY) ====================
 void appendFile(fs::FS &fs, const char *path, const char *message) {
     if (!isSDAvailable()) return;
 
@@ -233,23 +253,39 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
 
     Serial.printf("[SD] Appending to file: %s\n", path);
 
-    File file = fs.open(path, FILE_APPEND);
-    if (!file) {
-        Serial.println("[SD] Failed to open file for appending");
-        sendMessage("ERR:OPEN_FILE_FAILED");
-        return;
+    // Retry loop
+    for (int attempt = 1; attempt <= SD_WRITE_RETRIES; attempt++) {
+        feedWatchdog();
+
+        File file = fs.open(path, FILE_APPEND);
+        if (!file) {
+            Serial.printf("[SD] Attempt %d: Failed to open file\n", attempt);
+            if (attempt < SD_WRITE_RETRIES) {
+                delay(SD_RETRY_DELAY);
+                continue;
+            }
+            sendMessage("ERR:OPEN_FILE_FAILED");
+            return;
+        }
+
+        size_t bytesWritten = file.print(message);
+        file.close();
+
+        if (bytesWritten > 0) {
+            Serial.printf("[SD] Appended %d bytes (attempt %d)\n", bytesWritten, attempt);
+            sendMessage("OK:APPENDED:" + String(bytesWritten) + "B");
+            return;  // Success!
+        }
+
+        Serial.printf("[SD] Attempt %d: Append returned 0 bytes\n", attempt);
+        if (attempt < SD_WRITE_RETRIES) {
+            delay(SD_RETRY_DELAY);
+        }
     }
 
-    size_t bytesWritten = file.print(message);
-    file.close();
-
-    if (bytesWritten > 0) {
-        Serial.printf("[SD] Appended %d bytes\n", bytesWritten);
-        sendMessage("OK:APPENDED:" + String(bytesWritten) + "B");
-    } else {
-        Serial.println("[SD] Append failed");
-        sendMessage("ERR:APPEND_FAILED");
-    }
+    // All retries failed
+    Serial.println("[SD] Append failed after all retries");
+    sendMessage("ERR:APPEND_FAILED");
 }
 
 // ==================== RENAME FILE ====================

@@ -96,16 +96,15 @@ Format: SATELLITE_ID-COMMAND&PATH@DATA#SIGNATURE
 ## The Body
 
 ```
-V_1.21/main/
 ├── main.ino        # Where it begins
 ├── config.h/cpp    # The constants of this universe
-├── setup.cpp       # The awakening
-├── loop.cpp        # The eternal cycle
-├── lora.cpp        # The voice
-├── sensors.cpp     # The senses
-├── memor.cpp       # The memory
-├── radiation.cpp   # The shield
-└── id.cpp          # The name of the temple itself
+├── setup.h/cpp     # The awakening
+├── loop.h/cpp      # The eternal cycle
+├── lora.h/cpp      # The voice
+├── sensors.h/cpp   # The senses
+├── memor.h/cpp     # The memory
+├── radiation.h/cpp # The shield
+└── id.h/cpp        # The name of the temple itself
 ```
 
 ---

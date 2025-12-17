@@ -82,6 +82,8 @@ void feedWatchdog() {
 }
 
 // ==================== STATE PERSISTENCE ====================
+// Note: State loading is handled by initRadiationProtection() in radiation.cpp
+// which calls loadStateWithCRC() for CRC-verified state restoration.
 
 void saveState() {
     // Sync critical variables to TMR copies for radiation protection
@@ -96,47 +98,6 @@ void saveState() {
 
     // Use CRC-protected save
     saveStateWithCRC();
-}
-
-void loadState() {
-    if (EEPROM.read(EEPROM_ADDR_MAGIC) != EEPROM_MAGIC) {
-        // First boot or EEPROM corrupted - initialize
-        Serial.println("[STATE] First boot detected, initializing EEPROM");
-        bootCount = 1;
-        currentState = STATE_BOOT;
-        antennaDeployed = false;
-        missionStartTime = millis();
-        saveState();
-        return;
-    }
-
-    // Load saved state
-    // Note: savedState from EEPROM not used - we determine state from antennaDeployed
-    EEPROM.get(EEPROM_ADDR_BOOTCOUNT, bootCount);
-    antennaDeployed = (EEPROM.read(EEPROM_ADDR_DEPLOY_OK) == 1);
-    EEPROM.get(EEPROM_ADDR_MISSION_START, missionStartTime);
-
-    // Increment boot count
-    bootCount++;
-
-    Serial.print("[STATE] Boot count: ");
-    Serial.println(bootCount);
-    Serial.print("[STATE] Antenna deployed: ");
-    Serial.println(antennaDeployed ? "YES" : "NO");
-
-    // Restore state based on antenna deployment status
-    if (antennaDeployed) {
-        // Antenna already deployed, go directly to operational
-        currentState = STATE_OPERATIONAL;
-        Serial.println("[STATE] Resuming operational state");
-    } else {
-        // Need to continue deployment sequence
-        currentState = STATE_BOOT;
-        Serial.println("[STATE] Resuming deployment sequence");
-    }
-
-    // Save updated boot count
-    saveState();
 }
 
 // ==================== HMAC AUTHENTICATION ====================

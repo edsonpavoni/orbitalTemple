@@ -258,7 +258,7 @@ void feedWatchdog();
 
 // State persistence
 void saveState();
-void loadState();
+// Note: State loading is handled by initRadiationProtection() in radiation.cpp
 
 // Authentication
 bool verifyHMAC(const String& message, const String& receivedHMAC);

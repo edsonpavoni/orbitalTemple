@@ -2,3 +2,9 @@
 
 # Secret keys - NEVER commit these
 secrets.h
+
+# PlatformIO build directory
+.pio/
+
+# IDE settings
+.vscode/

@@ -193,8 +193,9 @@ bool sendMessage(const String& message) {
     // Small delay before transmitting
     delay(100);
 
-    // Transmit the message
-    state = radio.transmit(message);
+    // Transmit the message (make a copy since RadioLib takes non-const String&)
+    String txMessage = message;
+    state = radio.transmit(txMessage);
 
     if (state == RADIOLIB_ERR_NONE) {
         Serial.println("[LORA] Message sent successfully");

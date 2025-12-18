@@ -23,6 +23,7 @@
 
 #include <Arduino.h>
 #include <stdint.h>
+#include <esp_idf_version.h>
 #include "config.h"
 #include "setup.h"
 #include "lora.h"
@@ -49,12 +50,18 @@ void setupGeneral() {
 
     // ==================== WATCHDOG INITIALIZATION ====================
     Serial.println("[SETUP] Initializing watchdog timer...");
-    esp_task_wdt_config_t wdt_config = {
-        .timeout_ms = WDT_TIMEOUT_SECONDS * 1000,
-        .idle_core_mask = 0,
-        .trigger_panic = WDT_PANIC_ON_TIMEOUT
-    };
-    esp_task_wdt_init(&wdt_config);
+    #if ESP_IDF_VERSION_MAJOR >= 5
+        // ESP-IDF 5.x uses new struct-based API
+        esp_task_wdt_config_t wdt_config = {
+            .timeout_ms = WDT_TIMEOUT_SECONDS * 1000,
+            .idle_core_mask = 0,
+            .trigger_panic = WDT_PANIC_ON_TIMEOUT
+        };
+        esp_task_wdt_init(&wdt_config);
+    #else
+        // ESP-IDF 4.x uses old API
+        esp_task_wdt_init(WDT_TIMEOUT_SECONDS, WDT_PANIC_ON_TIMEOUT);
+    #endif
     esp_task_wdt_add(NULL);  // Add current task to watchdog
     Serial.printf("[SETUP] Watchdog configured: %d second timeout\n", WDT_TIMEOUT_SECONDS);
 

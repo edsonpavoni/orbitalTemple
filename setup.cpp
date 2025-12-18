@@ -30,6 +30,7 @@
 #include "sensors.h"
 #include "radiation.h"
 #include "accel.h"
+#include "memor.h"
 
 void setupGeneral() {
     // Initialize serial first for debugging
@@ -48,7 +49,12 @@ void setupGeneral() {
 
     // ==================== WATCHDOG INITIALIZATION ====================
     Serial.println("[SETUP] Initializing watchdog timer...");
-    esp_task_wdt_init(WDT_TIMEOUT_SECONDS, WDT_PANIC_ON_TIMEOUT);
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = WDT_TIMEOUT_SECONDS * 1000,
+        .idle_core_mask = 0,
+        .trigger_panic = WDT_PANIC_ON_TIMEOUT
+    };
+    esp_task_wdt_init(&wdt_config);
     esp_task_wdt_add(NULL);  // Add current task to watchdog
     Serial.printf("[SETUP] Watchdog configured: %d second timeout\n", WDT_TIMEOUT_SECONDS);
 

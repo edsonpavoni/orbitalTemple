@@ -14,6 +14,9 @@
 #include "accel.h"
 #include "secrets.h"  // HMAC key - this file should NOT be committed to git
 
+// Forward declaration for battery reading (defined in sensors.cpp)
+extern void readBatteryVoltage();
+
 // ==================== RADIO ====================
 // RFM95 module (SX1276 chip) - uses DIO0 for interrupts
 SX1276 radio = new Module(CS_RF, DIO0_RF, RST_RF);
@@ -177,8 +180,8 @@ unsigned long getBeaconInterval() {
     unsigned long now = millis();
 
     if (!groundContactEstablished) {
-        // No contact yet - beacon frequently to help ground find us
-        Serial.println("[BEACON] Mode: NO_CONTACT (frequent beacons)");
+        // No contact yet - beacon every 4 minutes to help ground find us
+        Serial.println("[BEACON] Interval: NO_CONTACT (every 4 min)");
         return BEACON_INTERVAL_NO_CONTACT;
     }
 
@@ -186,14 +189,14 @@ unsigned long getBeaconInterval() {
     unsigned long timeSinceContact = now - lastGroundContact;
 
     if (timeSinceContact > BEACON_LOST_THRESHOLD) {
-        // Lost contact - beacon more frequently
-        Serial.printf("[BEACON] Mode: LOST (no contact for %lu hours)\n",
+        // Lost contact - beacon every 8 minutes
+        Serial.printf("[BEACON] Interval: LOST (every 8 min, no contact for %lu hours)\n",
                       timeSinceContact / 3600000UL);
         return BEACON_INTERVAL_LOST;
     }
 
-    // Normal operation - beacon less frequently
-    Serial.println("[BEACON] Mode: NORMAL (contact established)");
+    // Normal operation - beacon every 1 hour
+    Serial.println("[BEACON] Interval: NORMAL (every 1 hour)");
     return BEACON_INTERVAL_NORMAL;
 }
 
@@ -222,19 +225,38 @@ void registerGroundContact() {
 void sendBeacon() {
     unsigned long now = millis();
 
+    // ==================== BATTERY CHECK ====================
+    // Read battery voltage before sending beacon
+    Serial.println("[BEACON] Checking battery voltage...");
+    readBatteryVoltage();
+
+    // Skip beacon if battery is too low (power saving mode)
+    if (VT < BEACON_MIN_BATTERY_VOLTAGE && VT > 0) {
+        Serial.printf("[BEACON] LOW BATTERY (%.2fV < %.1fV) - Skipping beacon to save power\n",
+                      VT, BEACON_MIN_BATTERY_VOLTAGE);
+        // Still update lastBeaconTime to maintain interval timing
+        lastBeaconTime = millis();
+        return;
+    }
+
+    Serial.printf("[BEACON] Battery OK: %.2fV\n", VT);
+
     // Choose beacon message based on contact status
     String beacon;
     if (!groundContactEstablished) {
         // Searching for Earth
+        Serial.println("[BEACON] Mode: SEARCHING (every 4 min)");
         beacon = BEACON_MSG_SEARCHING;
     } else {
         // Check if lost
         unsigned long timeSinceContact = now - lastGroundContact;
         if (timeSinceContact > BEACON_LOST_THRESHOLD) {
             // Lost contact
+            Serial.println("[BEACON] Mode: LOST (every 8 min)");
             beacon = BEACON_MSG_LOST;
         } else {
             // Connected
+            Serial.println("[BEACON] Mode: CONNECTED (every 1 hour)");
             beacon = BEACON_MSG_CONNECTED;
         }
     }
@@ -259,7 +281,7 @@ void sendBeacon() {
     beacon += "|C:";
     beacon += groundContactEstablished ? "YES" : "NO";
 
-    // Add battery voltage if available
+    // Add battery voltage
     beacon += "|V:";
     beacon += String(VT, 1);
 

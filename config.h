@@ -131,16 +131,19 @@ extern const uint8_t HMAC_KEY[HMAC_KEY_LENGTH];
 // ==================== BEACON CONFIGURATION ====================
 // Adaptive beacon timing based on ground station contact status
 //
-// Before first contact:    BEACON_INTERVAL_NO_CONTACT (1 minute)
+// Before first contact:    BEACON_INTERVAL_NO_CONTACT (4 minutes)
 // After contact established: BEACON_INTERVAL_NORMAL (1 hour)
-// After 24h without contact: BEACON_INTERVAL_LOST (5 minutes)
+// After 24h without contact: BEACON_INTERVAL_LOST (8 minutes)
 //
 // EASY TO CONFIGURE: Adjust these values as needed
 
-#define BEACON_INTERVAL_NO_CONTACT   60000UL      // 1 minute (60,000 ms) - before first contact
+#define BEACON_INTERVAL_NO_CONTACT   240000UL     // 4 minutes (240,000 ms) - before first contact
 #define BEACON_INTERVAL_NORMAL       3600000UL    // 1 hour (3,600,000 ms) - after contact established
-#define BEACON_INTERVAL_LOST         300000UL     // 5 minutes (300,000 ms) - no contact for 24h
+#define BEACON_INTERVAL_LOST         480000UL     // 8 minutes (480,000 ms) - no contact for 24h
 #define BEACON_LOST_THRESHOLD        86400000UL   // 24 hours (86,400,000 ms) - time to consider "lost"
+
+// Battery threshold for beacon transmission (power saving)
+#define BEACON_MIN_BATTERY_VOLTAGE   3.3f         // Skip beacon if battery below this voltage
 
 // Beacon message content - Brazilian poetry for each state
 #define BEACON_MSG_SEARCHING  "Andar com fe eu vou, que a fe nao costuma faia."

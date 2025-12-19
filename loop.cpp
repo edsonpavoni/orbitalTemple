@@ -65,22 +65,79 @@ String getMissionTime() {
 
 // ==================== TELEMETRY ====================
 void sendTelemetry() {
+    Serial.println("[TELEM] >>> Starting telemetry collection...");
     feedWatchdog();
 
-    // Read all sensors
+    // Read all sensors with progress logging
+    Serial.println("[TELEM] Reading battery voltage...");
     readBatteryVoltage();
-    readLumi();
-    readTemp();
+    Serial.println("[TELEM] Battery OK");
 
-    // Read IMU if available
+    Serial.println("[TELEM] Reading luminosity...");
+    readLumi();
+    Serial.println("[TELEM] Luminosity OK");
+
+    Serial.println("[TELEM] Reading temperature...");
+    readTemp();
+    Serial.println("[TELEM] Temperature OK");
+
+    // Read IMU if available - with timeout protection
     if (IMUOK) {
-        if (imu.gyroAvailable()) imu.readGyro();
-        if (imu.accelAvailable()) imu.readAccel();
-        if (imu.magAvailable()) imu.readMag();
+        Serial.println("[TELEM] Reading IMU (with timeout)...");
+
+        // Set I2C timeout to prevent hanging on unresponsive sensor
+        Wire.setTimeOut(100);  // 100ms timeout
+
+        unsigned long imuStart = millis();
+        bool imuReadOK = true;
+
+        // Try to read gyro with timeout check
+        Serial.println("[TELEM]   Checking gyro...");
+        if (imu.gyroAvailable()) {
+            imu.readGyro();
+            if (millis() - imuStart > 500) {
+                Serial.println("[TELEM]   WARNING: Gyro read took too long!");
+                imuReadOK = false;
+            }
+        }
+        feedWatchdog();
+
+        // Try to read accelerometer with timeout check
+        Serial.println("[TELEM]   Checking accel...");
+        if (imu.accelAvailable()) {
+            imu.readAccel();
+            if (millis() - imuStart > 1000) {
+                Serial.println("[TELEM]   WARNING: Accel read took too long!");
+                imuReadOK = false;
+            }
+        }
+        feedWatchdog();
+
+        // Try to read magnetometer with timeout check
+        Serial.println("[TELEM]   Checking mag...");
+        if (imu.magAvailable()) {
+            imu.readMag();
+            if (millis() - imuStart > 1500) {
+                Serial.println("[TELEM]   WARNING: Mag read took too long!");
+                imuReadOK = false;
+            }
+        }
+        feedWatchdog();
+
+        unsigned long imuTime = millis() - imuStart;
+        if (imuReadOK) {
+            Serial.printf("[TELEM] IMU OK (took %lu ms)\n", imuTime);
+        } else {
+            Serial.printf("[TELEM] IMU SLOW/TIMEOUT (took %lu ms)\n", imuTime);
+        }
+    } else {
+        Serial.println("[TELEM] IMU not available, skipping");
     }
 
     // Build telemetry message with timestamp
     // Format: TIME|SENSORS|BAT|TEMP|LUX|IMU
+    Serial.println("[TELEM] Building telemetry message...");
+
     String telemetry = getMissionTime();
     telemetry += "|";
     telemetry += getSensorStatus();
@@ -91,8 +148,11 @@ void sendTelemetry() {
     telemetry += "C|LUX:";
     telemetry += String(lux, 1);
 
+    Serial.println("[TELEM] Basic sensors added to message");
+
     // Add IMU data if available
     if (IMUOK) {
+        Serial.println("[TELEM] Adding IMU data to message...");
         telemetry += "|GYR:";
         telemetry += String(imu.calcGyro(imu.gx), 1) + ",";
         telemetry += String(imu.calcGyro(imu.gy), 1) + ",";
@@ -105,10 +165,12 @@ void sendTelemetry() {
         telemetry += String(imu.calcMag(imu.mx), 1) + ",";
         telemetry += String(imu.calcMag(imu.my), 1) + ",";
         telemetry += String(imu.calcMag(imu.mz), 1);
+        Serial.println("[TELEM] IMU data added");
     }
 
     // Add SD card capacity (Gemini review recommendation)
     if (SDOK) {
+        Serial.println("[TELEM] Adding SD card info...");
         telemetry += "|SD:";
         telemetry += String(getSDFreePercent());
         telemetry += "%";
@@ -118,11 +180,21 @@ void sendTelemetry() {
     telemetry += "|SEU:";
     telemetry += String(seuCorrectionsTotal);
 
-    Serial.println("[TELEM] " + telemetry);
-    sendMessage(telemetry);
+    Serial.println("[TELEM] Message complete, length: " + String(telemetry.length()));
+    Serial.println("[TELEM] >>> " + telemetry);
+
+    Serial.println("[TELEM] Sending via LoRa...");
+    bool sendOK = sendMessage(telemetry);
+    if (sendOK) {
+        Serial.println("[TELEM] >>> Send SUCCESS");
+    } else {
+        Serial.println("[TELEM] >>> Send FAILED!");
+    }
 
     // Log to SD card
+    Serial.println("[TELEM] Logging to SD...");
     logToSD(telemetry.c_str());
+    Serial.println("[TELEM] <<< Telemetry complete");
 }
 
 // ==================== INPUT VALIDATION ====================
@@ -226,8 +298,11 @@ void processMessage(const String& message) {
 
     // Process command
     if (command.equals("Status")) {
-        Serial.println("[CMD] Status request");
+        Serial.println("[CMD] ====================================");
+        Serial.println("[CMD] STATUS REQUEST RECEIVED");
+        Serial.println("[CMD] ====================================");
         sendTelemetry();
+        Serial.println("[CMD] Status request completed");
     }
     else if (command.equals("Ping")) {
         Serial.println("[CMD] Ping");
@@ -589,13 +664,22 @@ void mainLoop() {
 
             // Process incoming messages
             if (receivedFlag) {
+                Serial.println("[LORA] *** PACKET RECEIVED FLAG SET ***");
                 receivedFlag = false;
+                Serial.println("[LORA] Reading packet data...");
                 int state = radio.readData(receivedData);
                 if (state == RADIOLIB_ERR_NONE) {
-                    Serial.println("[LORA] Received: " + receivedData);
+                    Serial.println("[LORA] ====================================");
+                    Serial.println("[LORA] PACKET RECEIVED SUCCESSFULLY");
+                    Serial.println("[LORA] Length: " + String(receivedData.length()));
+                    Serial.println("[LORA] Data: " + receivedData);
+                    Serial.println("[LORA] ====================================");
+                    Serial.println("[LORA] Processing message...");
                     processMessage(receivedData);
+                    Serial.println("[LORA] Message processing complete");
                 } else {
-                    Serial.printf("[LORA] Read error: %d\n", state);
+                    Serial.println("[LORA] *** READ ERROR ***");
+                    Serial.printf("[LORA] Error code: %d\n", state);
                 }
             }
             break;

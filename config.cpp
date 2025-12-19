@@ -15,7 +15,8 @@
 #include "secrets.h"  // HMAC key - this file should NOT be committed to git
 
 // ==================== RADIO ====================
-SX1262 radio = new Module(CS_RF, DIO1_RF, RST_RF);
+// RFM95 module (SX1276 chip) - uses DIO0 for interrupts
+SX1276 radio = new Module(CS_RF, DIO0_RF, RST_RF);
 
 // LoRa receive flag - SINGLE DEFINITION (was duplicated in V1.2)
 volatile bool receivedFlag = false;

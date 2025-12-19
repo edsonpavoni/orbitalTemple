@@ -62,10 +62,10 @@
 #define AntSwitch 33
 #define R1 27
 
-// RF Module (SX1262)
+// RF Module (RFM95 / SX1276)
 #define CS_RF 5
 #define RST_RF 14
-#define DIO1_RF 2
+#define DIO0_RF 2   // SX1276 uses DIO0 for RX/TX interrupts (not DIO1 like SX1262)
 
 // ==================== RADIO CONFIGURATION ====================
 // Centralized to ensure consistency across all functions
@@ -197,7 +197,7 @@ extern const uint8_t HMAC_KEY[HMAC_KEY_LENGTH];
 extern String sat_id;
 
 // --- LoRa Radio ---
-extern SX1262 radio;
+extern SX1276 radio;
 extern volatile bool receivedFlag;
 extern String MsR;
 

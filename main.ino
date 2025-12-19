@@ -19,7 +19,7 @@
  *
  * HARDWARE:
  * - ESP32 microcontroller
- * - SX1262 LoRa radio module
+ * - RFM95 LoRa radio module (SX1276 chip)
  * - LSM9DS1 IMU sensor
  * - SD card for data storage
  * - Thermistor temperature sensor
@@ -96,6 +96,13 @@
 
 // ==================== ARDUINO SETUP ====================
 void setup() {
+    // EARLY DEBUG - Print before anything else
+    Serial.begin(115200);
+    delay(100);
+    Serial.println();
+    Serial.println(">>> ESP32 ALIVE - Entering setup() <<<");
+    Serial.flush();
+
     // Initialize all hardware and load state
     setupGeneral();
 

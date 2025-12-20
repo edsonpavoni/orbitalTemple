@@ -411,9 +411,27 @@ uint64_t getSDFreeMB() {
 uint8_t getSDFreePercent() {
     if (!SDOK) return 0;
     uint64_t total = SD.totalBytes();
-    if (total == 0) return 0;
-    uint64_t free = total - SD.usedBytes();
-    return (uint8_t)((free * 100) / total);
+    uint64_t used = SD.usedBytes();
+
+    // Debug: Log raw values to help diagnose SD issues
+    Serial.printf("[SD] Debug: total=%llu bytes, used=%llu bytes\n", total, used);
+
+    if (total == 0) {
+        Serial.println("[SD] WARNING: totalBytes() returned 0!");
+        return 0;
+    }
+
+    // Check for known ESP32 SD library bug where usedBytes == totalBytes
+    if (used >= total) {
+        Serial.println("[SD] WARNING: usedBytes >= totalBytes (known ESP32 bug)");
+        // Return 99% as fallback (assume card is mostly empty)
+        return 99;
+    }
+
+    uint64_t free = total - used;
+    uint8_t percent = (uint8_t)((free * 100) / total);
+    Serial.printf("[SD] Free: %llu bytes (%d%%)\n", free, percent);
+    return percent;
 }
 
 bool hasSDSpace(size_t bytesNeeded) {

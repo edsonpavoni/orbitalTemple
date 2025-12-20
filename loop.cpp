@@ -632,12 +632,67 @@ void mainLoop() {
 
             // ==================== ADAPTIVE BEACON ====================
             // Beacon interval depends on ground contact status:
-            // - Before first contact: every 1 minute (frequent)
+            // - Before first contact: every 4 minutes (frequent)
             // - After contact established: every 1 hour (normal)
-            // - After 24h without contact: every 5 minutes (lost mode)
+            // - After 24h without contact: every 8 minutes (lost mode)
             {
                 unsigned long beaconInterval = getBeaconInterval();
-                if (now - lastBeaconTime >= beaconInterval) {
+                unsigned long timeSinceLastBeacon = now - lastBeaconTime;
+
+                // ==================== BEACON COUNTDOWN (every 5 min) ====================
+                static unsigned long lastCountdownPrint = 0;
+                const unsigned long COUNTDOWN_PRINT_INTERVAL = 300000UL;  // 5 minutes
+
+                if (now - lastCountdownPrint >= COUNTDOWN_PRINT_INTERVAL) {
+                    unsigned long timeUntilBeacon = (timeSinceLastBeacon < beaconInterval)
+                        ? (beaconInterval - timeSinceLastBeacon) : 0;
+
+                    unsigned long minutesUntil = timeUntilBeacon / 60000UL;
+                    unsigned long secondsUntil = (timeUntilBeacon % 60000UL) / 1000UL;
+
+                    unsigned long minutesSince = timeSinceLastBeacon / 60000UL;
+                    unsigned long secondsSince = (timeSinceLastBeacon % 60000UL) / 1000UL;
+
+                    // Determine beacon mode
+                    const char* beaconMode;
+                    const char* beaconMsg;
+                    if (!groundContactEstablished) {
+                        beaconMode = "SEARCHING";
+                        beaconMsg = "Andar com fe...";
+                    } else {
+                        unsigned long contactAge = now - lastGroundContact;
+                        if (contactAge > BEACON_LOST_THRESHOLD) {
+                            beaconMode = "LOST";
+                            beaconMsg = "Por mais distante...";
+                        } else {
+                            beaconMode = "CONNECTED";
+                            beaconMsg = "Ainda bem...";
+                        }
+                    }
+
+                    Serial.println();
+                    Serial.println("╔══════════════════════════════════════════════════════════╗");
+                    Serial.println("║             BEACON COUNTDOWN STATUS                      ║");
+                    Serial.println("╠══════════════════════════════════════════════════════════╣");
+                    Serial.printf("║ Mode: %-12s  Contact: %-3s                       ║\n",
+                                  beaconMode, groundContactEstablished ? "YES" : "NO");
+                    Serial.printf("║ Interval: %lu min                                         ║\n",
+                                  beaconInterval / 60000UL);
+                    Serial.printf("║ Time since last beacon: %02lu:%02lu                           ║\n",
+                                  minutesSince, secondsSince);
+                    Serial.printf("║ Time until next beacon: %02lu:%02lu                           ║\n",
+                                  minutesUntil, secondsUntil);
+                    Serial.printf("║ Next message: %-40s  ║\n", beaconMsg);
+                    Serial.printf("║ lastBeaconTime: %lu                                   ║\n", lastBeaconTime);
+                    Serial.println("╚══════════════════════════════════════════════════════════╝");
+                    Serial.println();
+
+                    lastCountdownPrint = now;
+                }
+
+                // Check if it's time to send beacon
+                if (timeSinceLastBeacon >= beaconInterval) {
+                    Serial.println("[BEACON] >>> INTERVAL REACHED - SENDING BEACON NOW <<<");
                     sendBeacon();
                     // lastBeaconTime is updated inside sendBeacon()
                 }

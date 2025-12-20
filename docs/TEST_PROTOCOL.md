@@ -390,9 +390,24 @@ Reset the EEPROM (or use a fresh chip) so the satellite thinks it has never cont
 
 **What you should see:**
 
-Beacons every **1 minute** with the message:
+Beacons every **4 minutes** with the message:
 ```
-Andar com fe eu vou, que a fe nao costuma faia.
+Andar com fe eu vou, que a fe nao costuma faia.|T+00:04:00|B:1|C:NO|V:3.8
+```
+
+**Debug: Beacon Countdown**
+
+Every 5 minutes, you'll see a countdown status box on serial:
+```
+╔══════════════════════════════════════════════════════════╗
+║             BEACON COUNTDOWN STATUS                      ║
+╠══════════════════════════════════════════════════════════╣
+║ Mode: SEARCHING     Contact: NO                          ║
+║ Interval: 4 min                                          ║
+║ Time since last beacon: 02:30                            ║
+║ Time until next beacon: 01:30                            ║
+║ Next message: Andar com fe...                            ║
+╚══════════════════════════════════════════════════════════╝
 ```
 
 ---
@@ -403,10 +418,38 @@ Send any valid command (like Ping).
 
 **What you should see:**
 
-The beacon interval changes to **1 hour**. The message changes to:
+1. The satellite responds `PONG|T+...`
+2. Serial shows: `[BEACON] First ground contact established!`
+3. The beacon interval changes to **1 hour**
+4. The message changes to: `Ainda bem, que agora encontrei voce`
+
+**Debug: Verify Contact Status**
+
+After sending the Ping, wait for the next countdown box (up to 5 min):
 ```
-Ainda bem, que agora encontrei voce
+╔══════════════════════════════════════════════════════════╗
+║             BEACON COUNTDOWN STATUS                      ║
+╠══════════════════════════════════════════════════════════╣
+║ Mode: CONNECTED     Contact: YES                         ║
+║ Interval: 60 min                                         ║
+║ Time since last beacon: 05:00                            ║
+║ Time until next beacon: 55:00                            ║
+║ Next message: Ainda bem...                               ║
+╚══════════════════════════════════════════════════════════╝
 ```
+
+**If Contact: NO after sending Ping:**
+- Check if HMAC was correct (should see `[MSG] Valid message received`)
+- Look for `[BEACON] First ground contact established!` in serial log
+- Send `SAT001-GetState&@#[HMAC]` to check current state
+
+**Troubleshooting: Beacon not received after 1 hour**
+
+If Mode is CONNECTED but you don't receive a beacon:
+1. Check the countdown is reaching 00:00
+2. Look for `[BEACON] >>> INTERVAL REACHED - SENDING BEACON NOW <<<`
+3. Check battery (beacon is skipped if < 3.3V)
+4. Verify radio is on TX frequency (468.5 MHz)
 
 ---
 
@@ -453,22 +496,106 @@ This is the most important test. Leave the satellite running for 7 days with no 
 **Setup:**
 - Power from battery + charger (simulating solar panel)
 - Ground station logging all received beacons
+- Serial monitor connected (to capture hourly/daily logs)
 - No touching, no commands, just observe
 
-**Check every day:**
+---
 
-Day 1: Are beacons being received regularly?
-Day 2: Is boot count still 1? (no crashes)
-Day 3: Any ERROR messages in the log?
-Day 4: Is SD card filling up unexpectedly?
-Day 5: Are sensor values still reasonable?
-Day 6: Send a Ping - does it respond?
-Day 7: Send Status - all systems OK?
+### Automatic Debug Logging (NEW)
 
-**Pass criteria:**
-- Zero unexpected reboots (boot count stays at 1)
-- Zero error messages
-- All commands still work on day 7
+The satellite now logs comprehensive status automatically:
+
+**Every 1 Hour - Hourly Status:**
+```
+╔═══════════════════════════════════════════════════════════════╗
+║              SOAK TEST - HOURLY STATUS                        ║
+╠═══════════════════════════════════════════════════════════════╣
+║ Uptime: 1d 05:30:00                                           ║
+║ Boot Count: 1       Free Heap: 245000 bytes                   ║
+╠═══════════════════════════════════════════════════════════════╣
+║ Beacons Sent: 28       Skipped (low bat): 0                   ║
+║ Commands OK: 5         Failed: 0                              ║
+║ TX Errors: 0           RX Errors: 0                           ║
+║ Radio Resets: 0                                               ║
+╠═══════════════════════════════════════════════════════════════╣
+║ Battery: 3.85V   Temp: 25.3C   Contact: YES                   ║
+║ IMU: OK   SD: OK   RF: OK                                     ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**Every 24 Hours - Daily Summary:**
+```
+╔═══════════════════════════════════════════════════════════════╗
+║         *** SOAK TEST - DAILY SUMMARY ***                     ║
+║                    DAY 3 COMPLETE                              ║
+╠═══════════════════════════════════════════════════════════════╣
+║ Total Uptime: 3d 00:00:00                                     ║
+║ Boot Count: 1     (should be 1 for clean test)                ║
+║ Free Heap: 243000 bytes                                       ║
+╠═══════════════════════════════════════════════════════════════╣
+║ COMMUNICATION STATS:                                          ║
+║   Beacons Sent: 72                                            ║
+║   Beacons Skipped: 0      (low battery)                       ║
+║   Commands Received: 0                                        ║
+║   Commands Failed: 0                                          ║
+╠═══════════════════════════════════════════════════════════════╣
+║ ERROR COUNTS:                                                 ║
+║   TX Errors: 0                                                ║
+║   RX Errors: 0                                                ║
+║   Radio Resets: 0                                             ║
+╠═══════════════════════════════════════════════════════════════╣
+║ HEALTH: Battery=3.82V Temp=24.1C                              ║
+║ STATUS: HEALTHY ✓                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**SD Card Logging:**
+
+All hourly and daily logs are also saved to `/log.txt` on the SD card. Even if you lose serial connection, you can read the log after the test:
+
+```
+SAT001-ReadFile&/log.txt@#[HMAC]
+```
+
+---
+
+### What to Monitor
+
+| Day | Check | Expected |
+|-----|-------|----------|
+| 1 | Hourly logs appearing? | Yes, every hour |
+| 2 | Boot Count | Still 1 |
+| 3 | Free Heap | Not decreasing significantly |
+| 4 | TX/RX Errors | Zero or very low |
+| 5 | Beacons Sent | Increasing (24/day if connected) |
+| 6 | Send Ping | Responds with PONG |
+| 7 | Send Status | All sensors OK |
+
+---
+
+### Red Flags (Stop Test & Investigate)
+
+- **Boot Count > 1**: Satellite crashed and restarted
+- **Free Heap < 50000**: Possible memory leak
+- **STATUS: CHECK REQUIRED**: Multiple errors detected
+- **TX Errors > 10**: Radio TX problem
+- **RX Errors > 10**: Radio RX problem
+- **Radio Resets > 0**: Radio needed recovery
+- **No hourly logs**: Satellite may have frozen
+
+---
+
+### Pass Criteria
+
+```
+[ ] Boot Count stayed at 1 (zero crashes)
+[ ] STATUS: HEALTHY on all daily summaries
+[ ] TX Errors: 0
+[ ] RX Errors: 0
+[ ] Radio Resets: 0
+[ ] Commands work on Day 6-7
+[ ] Free Heap stable (no significant decrease)
+```
 
 ---
 

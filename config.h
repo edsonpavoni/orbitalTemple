@@ -128,6 +128,11 @@ extern const uint8_t HMAC_KEY[HMAC_KEY_LENGTH];
 #define STATUS_INTERVAL        60000UL    // Send status every 60 seconds in operational mode
 #define WDT_FEED_INTERVAL      10000UL    // Feed watchdog every 10 seconds
 
+// ==================== SOAK TEST LOGGING ====================
+// Comprehensive logging for 7-day endurance test debugging
+#define SOAK_LOG_INTERVAL      3600000UL  // Log to SD every 1 hour (3,600,000 ms)
+#define SOAK_DAILY_INTERVAL    86400000UL // Daily summary every 24 hours
+
 // ==================== BEACON CONFIGURATION ====================
 // Adaptive beacon timing based on ground station contact status
 //
@@ -230,6 +235,18 @@ extern bool SDOK;
 extern int contE;  // Transmit retry counter
 extern int contR;  // Receive retry counter
 
+// --- Soak Test Counters (for 7-day test debugging) ---
+extern uint32_t soakBeaconsSent;       // Total beacons sent this session
+extern uint32_t soakBeaconsSkipped;    // Beacons skipped (low battery)
+extern uint32_t soakCommandsReceived;  // Total commands received
+extern uint32_t soakCommandsFailed;    // Commands that failed (auth, parse, etc.)
+extern uint32_t soakTxErrors;          // Radio TX errors
+extern uint32_t soakRxErrors;          // Radio RX errors
+extern uint32_t soakRadioResets;       // Radio recovery attempts
+extern uint32_t soakLoopIterations;    // Main loop iterations (overflow expected)
+extern unsigned long soakLastHourlyLog; // Last hourly log time
+extern unsigned long soakLastDailyLog;  // Last daily log time
+
 // --- Sensors: Battery ---
 extern int VM1;
 extern float VE;
@@ -271,5 +288,10 @@ String calculateHMAC(const String& message);
 void sendBeacon();
 unsigned long getBeaconInterval();
 void registerGroundContact();
+
+// Soak test logging (7-day test)
+void soakTestTick();
+void soakLogHourly();
+void soakLogDaily();
 
 #endif // CONFIG_H

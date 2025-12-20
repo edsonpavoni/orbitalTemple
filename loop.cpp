@@ -281,10 +281,12 @@ void processMessage(const String& message) {
     // Validate and parse message
     if (!validateMessage(message, satId, command, path, data, hmac)) {
         Serial.println("[MSG] Invalid message, ignoring");
+        soakCommandsFailed++;  // Track for soak test
         return;
     }
 
     Serial.println("[MSG] Valid message received");
+    soakCommandsReceived++;  // Track for soak test
     Serial.println("[MSG] Command: " + command);
     Serial.println("[MSG] Path: " + path);
     Serial.println("[MSG] Data: " + data);
@@ -567,6 +569,9 @@ void mainLoop() {
     // Radiation protection - scrub TMR variables periodically
     radiationProtectionTick();
 
+    // Soak test logging - hourly and daily status
+    soakTestTick();
+
     // State machine
     switch (currentState) {
         case STATE_BOOT:
@@ -735,6 +740,7 @@ void mainLoop() {
                 } else {
                     Serial.println("[LORA] *** READ ERROR ***");
                     Serial.printf("[LORA] Error code: %d\n", state);
+                    soakRxErrors++;  // Track for soak test
                 }
             }
             break;

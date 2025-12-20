@@ -55,6 +55,18 @@ bool SDOK = false;  // Start false, set true only after successful init
 int contE = 0;
 int contR = 0;
 
+// ==================== SOAK TEST COUNTERS ====================
+uint32_t soakBeaconsSent = 0;
+uint32_t soakBeaconsSkipped = 0;
+uint32_t soakCommandsReceived = 0;
+uint32_t soakCommandsFailed = 0;
+uint32_t soakTxErrors = 0;
+uint32_t soakRxErrors = 0;
+uint32_t soakRadioResets = 0;
+uint32_t soakLoopIterations = 0;
+unsigned long soakLastHourlyLog = 0;
+unsigned long soakLastDailyLog = 0;
+
 // ==================== SENSORS: BATTERY ====================
 int VM1 = 0;
 float VE = 0.0f;
@@ -236,6 +248,7 @@ void sendBeacon() {
                       VT, BEACON_MIN_BATTERY_VOLTAGE);
         // Still update lastBeaconTime to maintain interval timing
         lastBeaconTime = millis();
+        soakBeaconsSkipped++;  // Track for soak test
         return;
     }
 
@@ -289,4 +302,168 @@ void sendBeacon() {
     sendMessage(beacon);
 
     lastBeaconTime = millis();
+    soakBeaconsSent++;  // Track for soak test
+}
+
+// ==================== SOAK TEST LOGGING ====================
+// Comprehensive logging for 7-day endurance test debugging
+
+// Forward declarations for functions we need
+extern void logToSD(const char* message);
+
+// Get free heap memory (detect memory leaks)
+uint32_t getFreeHeap() {
+    return ESP.getFreeHeap();
+}
+
+// Format uptime as days:hours:minutes:seconds
+String formatUptime(unsigned long ms) {
+    unsigned long seconds = ms / 1000;
+    unsigned long minutes = seconds / 60;
+    unsigned long hours = minutes / 60;
+    unsigned long days = hours / 24;
+
+    seconds %= 60;
+    minutes %= 60;
+    hours %= 24;
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%lud %02lu:%02lu:%02lu", days, hours, minutes, seconds);
+    return String(buf);
+}
+
+// Called every loop iteration - checks if it's time for logging
+void soakTestTick() {
+    unsigned long now = millis();
+    soakLoopIterations++;  // Will overflow, that's OK
+
+    // Hourly log
+    if (now - soakLastHourlyLog >= SOAK_LOG_INTERVAL) {
+        soakLogHourly();
+        soakLastHourlyLog = now;
+    }
+
+    // Daily log
+    if (now - soakLastDailyLog >= SOAK_DAILY_INTERVAL) {
+        soakLogDaily();
+        soakLastDailyLog = now;
+    }
+}
+
+// Hourly status log - written to SD card and serial
+void soakLogHourly() {
+    unsigned long now = millis();
+
+    Serial.println();
+    Serial.println("╔═══════════════════════════════════════════════════════════════╗");
+    Serial.println("║              SOAK TEST - HOURLY STATUS                        ║");
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Uptime: %-50s  ║\n", formatUptime(now).c_str());
+    Serial.printf("║ Boot Count: %-5lu    Free Heap: %-10lu bytes            ║\n",
+                  (unsigned long)bootCount, (unsigned long)getFreeHeap());
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Beacons Sent: %-8lu   Skipped (low bat): %-8lu         ║\n",
+                  (unsigned long)soakBeaconsSent, (unsigned long)soakBeaconsSkipped);
+    Serial.printf("║ Commands OK: %-9lu  Failed: %-8lu                     ║\n",
+                  (unsigned long)soakCommandsReceived, (unsigned long)soakCommandsFailed);
+    Serial.printf("║ TX Errors: %-11lu  RX Errors: %-8lu                   ║\n",
+                  (unsigned long)soakTxErrors, (unsigned long)soakRxErrors);
+    Serial.printf("║ Radio Resets: %-8lu                                        ║\n",
+                  (unsigned long)soakRadioResets);
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Battery: %.2fV   Temp: %.1fC   Contact: %-3s               ║\n",
+                  VT, Tc, groundContactEstablished ? "YES" : "NO");
+    Serial.printf("║ IMU: %-4s  SD: %-4s  RF: %-4s                                ║\n",
+                  IMUOK ? "OK" : "FAIL", SDOK ? "OK" : "FAIL", RFOK ? "OK" : "FAIL");
+    Serial.println("╚═══════════════════════════════════════════════════════════════╝");
+    Serial.println();
+
+    // Log to SD card for persistence
+    if (SDOK) {
+        char logEntry[256];
+        snprintf(logEntry, sizeof(logEntry),
+                 "HOURLY|UP:%s|BOOT:%lu|HEAP:%lu|BCN:%lu|SKIP:%lu|CMD:%lu|FAIL:%lu|TX_ERR:%lu|RX_ERR:%lu|RST:%lu|BAT:%.2f|TEMP:%.1f",
+                 formatUptime(now).c_str(),
+                 (unsigned long)bootCount,
+                 (unsigned long)getFreeHeap(),
+                 (unsigned long)soakBeaconsSent,
+                 (unsigned long)soakBeaconsSkipped,
+                 (unsigned long)soakCommandsReceived,
+                 (unsigned long)soakCommandsFailed,
+                 (unsigned long)soakTxErrors,
+                 (unsigned long)soakRxErrors,
+                 (unsigned long)soakRadioResets,
+                 VT, Tc);
+        logToSD(logEntry);
+    }
+}
+
+// Daily summary - more comprehensive
+void soakLogDaily() {
+    unsigned long now = millis();
+    unsigned long uptimeDays = now / 86400000UL;
+
+    Serial.println();
+    Serial.println("╔═══════════════════════════════════════════════════════════════╗");
+    Serial.println("║         *** SOAK TEST - DAILY SUMMARY ***                     ║");
+    Serial.printf("║                    DAY %lu COMPLETE                             ║\n", uptimeDays);
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Total Uptime: %-48s  ║\n", formatUptime(now).c_str());
+    Serial.printf("║ Boot Count: %-5lu (should be 1 for clean test)                ║\n",
+                  (unsigned long)bootCount);
+    Serial.printf("║ Free Heap: %-10lu bytes                                    ║\n",
+                  (unsigned long)getFreeHeap());
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.println("║ COMMUNICATION STATS:                                          ║");
+    Serial.printf("║   Beacons Sent: %-10lu                                     ║\n",
+                  (unsigned long)soakBeaconsSent);
+    Serial.printf("║   Beacons Skipped: %-7lu (low battery)                      ║\n",
+                  (unsigned long)soakBeaconsSkipped);
+    Serial.printf("║   Commands Received: %-5lu                                   ║\n",
+                  (unsigned long)soakCommandsReceived);
+    Serial.printf("║   Commands Failed: %-7lu                                    ║\n",
+                  (unsigned long)soakCommandsFailed);
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.println("║ ERROR COUNTS:                                                 ║");
+    Serial.printf("║   TX Errors: %-10lu                                        ║\n",
+                  (unsigned long)soakTxErrors);
+    Serial.printf("║   RX Errors: %-10lu                                        ║\n",
+                  (unsigned long)soakRxErrors);
+    Serial.printf("║   Radio Resets: %-7lu                                       ║\n",
+                  (unsigned long)soakRadioResets);
+    Serial.println("╠═══════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ HEALTH: Battery=%.2fV Temp=%.1fC                            ║\n", VT, Tc);
+
+    // Health assessment
+    bool healthy = (bootCount == 1) &&
+                   (soakCommandsFailed == 0) &&
+                   (soakTxErrors < 10) &&
+                   (soakRxErrors < 10) &&
+                   (getFreeHeap() > 50000);
+
+    Serial.printf("║ STATUS: %s                                             ║\n",
+                  healthy ? "HEALTHY ✓" : "CHECK REQUIRED !");
+    Serial.println("╚═══════════════════════════════════════════════════════════════╝");
+    Serial.println();
+
+    // Log to SD card
+    if (SDOK) {
+        char logEntry[300];
+        snprintf(logEntry, sizeof(logEntry),
+                 "DAILY|DAY:%lu|UP:%s|BOOT:%lu|HEAP:%lu|BCN:%lu|SKIP:%lu|CMD:%lu|FAIL:%lu|TX_ERR:%lu|RX_ERR:%lu|RST:%lu|BAT:%.2f|TEMP:%.1f|STATUS:%s",
+                 uptimeDays,
+                 formatUptime(now).c_str(),
+                 (unsigned long)bootCount,
+                 (unsigned long)getFreeHeap(),
+                 (unsigned long)soakBeaconsSent,
+                 (unsigned long)soakBeaconsSkipped,
+                 (unsigned long)soakCommandsReceived,
+                 (unsigned long)soakCommandsFailed,
+                 (unsigned long)soakTxErrors,
+                 (unsigned long)soakRxErrors,
+                 (unsigned long)soakRadioResets,
+                 VT, Tc,
+                 healthy ? "HEALTHY" : "CHECK");
+        logToSD(logEntry);
+    }
 }

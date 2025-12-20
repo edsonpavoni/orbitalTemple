@@ -208,18 +208,21 @@ bool sendMessage(const String& message) {
 
     } else if (state == RADIOLIB_ERR_PACKET_TOO_LONG) {
         Serial.println("[LORA] ERROR: Message too long!");
+        soakTxErrors++;  // Track for soak test
         returnToReceive();
         return false;
 
     } else if (state == RADIOLIB_ERR_TX_TIMEOUT) {
         Serial.println("[LORA] ERROR: TX timeout!");
         contE++;
+        soakTxErrors++;  // Track for soak test
         returnToReceive();
         return false;
 
     } else {
         Serial.printf("[LORA] ERROR: TX failed, code: %d\n", state);
         contE++;
+        soakTxErrors++;  // Track for soak test
         returnToReceive();
         return false;
     }
@@ -233,6 +236,7 @@ bool radioNeedsRecovery() {
 
 bool recoverRadio() {
     Serial.println("[LORA] Attempting radio recovery...");
+    soakRadioResets++;  // Track for soak test
 
     // Reset counters
     contR = 0;
